@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransitBoard — Enhanced Smart Bus Tracking Prototype</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#0B0F17;
+  --panel:#121826;
+  --panel-2:#171F30;
+  --line:#263049;
+  --text:#F1EEE6;
+  --muted:#8B93A8;
+  --amber:#F2B705;
+  --teal:#3FA796;
+  --violet:#9B8CE0;
+  --red:#E5533C;
+}
+
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  padding:0;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{
+  max-width:1180px;
+  margin:0 auto;
+  padding:28px 20px 60px;
+}
+
+/* ---------- Header ---------- */
+
+header{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+  flex-wrap:wrap;
+  border-bottom:1px solid var(--line);
+  padding-bottom:18px;
+  margin-bottom:22px;
+}
+
+.brand h1{
+  font-family:'Archivo',sans-serif;
+  font-weight:800;
+  font-size:clamp(26px,4vw,34px);
+  letter-spacing:-0.01em;
+  margin:0 0 4px;
+}
+
+.brand p{
+  margin:0;
+  color:var(--muted);
+  font-size:13.5px;
+  max-width:55ch;
+}
+
+.clock{
+  text-align:right;
+}
+
+.clock .time{
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  font-size:26px;
+  color:var(--amber);
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+}
+
+.clock .date{
+  color:var(--muted);
+  font-size:12.5px;
+  margin-top:4px;
+}
+
+/* ---------- Route tabs ---------- */
+
+.tabs{
+  display:flex;
+  gap:10px;
+  margin-bottom:22px;
+  flex-wrap:wrap;
+}
+
+.tab{
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:10px 16px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13.5px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  transition:border-color .15s ease,background .15s ease;
+}
+
+.tab .dot{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+}
+
+.tab:hover{
+  border-color:var(--dot-color,var(--muted));
+}
+
+.tab.active{
+  background:var(--panel-2);
+  border-color:var(--dot-color,var(--amber));
+}
+
+.tab .id{
+  color:var(--muted);
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+}
+
+/* ---------- Main grid ---------- */
+
+.grid{
+  display:grid;
+  grid-template-columns:1.15fr 1fr;
+  gap:20px;
+  align-items:start;
+}
+
+@media(max-width:880px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:20px;
+}
+
+.panel h2{
+  font-family:'Archivo',sans-serif;
+  font-size:15px;
+  font-weight:700;
+  margin:0 0 3px;
+}
+
+.panel .sub{
+  color:var(--muted);
+  font-size:12.5px;
+  margin:0 0 18px;
+}
+
+/* ---------- Campus Map ---------- */
+
+#campusMap{
+  width:100%;
+  background:#0E1523;
+  border-radius:8px;
+  margin-bottom:16px;
+  border:1px solid var(--line);
+}
+
+/* ---------- Route line ---------- */
+
+.route-line{
+  position:relative;
+  padding-left:26px;
+}
+
+.route-line::before{
+  content:'';
+  position:absolute;
+  left:9px;
+  top:6px;
+  bottom:6px;
+  width:2px;
+  background:var(--line);
+}
+
+.stop{
+  position:relative;
+  padding:14px 0;
+}
+
+.stop:first-child{
+  padding-top:0;
+}
+
+.stop:last-child{
+  padding-bottom:0;
+}
+
+.stop::before{
+  content:'';
+  position:absolute;
+  left:-26px;
+  top:18px;
+  width:11px;
+  height:11px;
+  border-radius:50%;
+  background:var(--bg);
+  border:2px solid var(--route-color,var(--amber));
+}
+
+.stop-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.stop-name{
+  font-weight:600;
+  font-size:14.5px;
+}
+
+.stop-meta{
+  color:var(--muted);
+  font-size:11.5px;
+  margin-top:2px;
+}
+
+.arrivals{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.arrival-chip{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+  padding:5px 9px;
+  border-radius:6px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  white-space:nowrap;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.arrival-chip.soon{
+  border-color:var(--route-color,var(--amber));
+  color:var(--route-color,var(--amber));
+}
+
+.arrival-chip .bus-id{
+  color:var(--muted);
+  font-weight:500;
+}
+
+/* ---------- Bus marker ---------- */
+
+.bus-marker{
+  position:absolute;
+  left:-30.5px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:var(--route-color,var(--amber));
+  color:#0B0F17;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9.5px;
+  font-weight:700;
+  transition:top .9s linear;
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 10px -1px var(--route-color,var(--amber));
+  z-index:2;
+}
+
+/* ---------- Dashboard cards ---------- */
+
+.stat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.stat-card{
+  background:var(--panel-2);
+  padding:12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+}
+
+.stat-label{
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+
+.stat-value{
+  font:700 22px 'Archivo',sans-serif;
+}
+
+/* ---------- Form ---------- */
+
+.field{
+  margin-bottom:14px;
+}
+
+.field label{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+select{
+  width:100%;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:10px 12px;
+  border-radius:7px;
+  font-size:13.5px;
+  font-family:inherit;
+  appearance:none;
+  cursor:pointer;
+}
+
+select:focus{
+  outline:2px solid var(--amber);
+  outline-offset:1px;
+}
+
+input[type="range"]{
+  accent-color:var(--amber);
+  cursor:pointer;
+}
+
+/* ---------- Buttons ---------- */
+
+.plan-btn{
+  width:100%;
+  background:var(--amber);
+  color:#0B0F17;
+  border:none;
+  padding:11px 14px;
+  border-radius:7px;
+  font-weight:700;
+  font-size:14px;
+  cursor:pointer;
+  font-family:'Archivo',sans-serif;
+  margin-top:4px;
+}
+
+.plan-btn:hover{
+  filter:brightness(1.08);
+}
+
+.admin-buttons{
+  display:flex;
+  gap:8px;
+}
+
+.admin-buttons button{
+  flex:1;
+  padding:9px;
+  border:none;
+  border-radius:6px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.delay-btn{
+  background:var(--amber);
+  color:#0B0F17;
+}
+
+.full-btn{
+  background:var(--red);
+  color:white;
+}
+
+/* ---------- Alert ---------- */
+
+.alert{
+  display:none;
+  background:#2A1515;
+  border:1px solid var(--red);
+  color:#FCA5A5;
+  padding:10px;
+  border-radius:8px;
+  margin:10px 0;
+  font-size:12px;
+  line-height:1.5;
+}
+
+.alert.show{
+  display:block;
+}
+
+/* ---------- Result ---------- */
+
+.result{
+  margin-top:18px;
+  border-top:1px dashed var(--line);
+  padding-top:16px;
+  display:none;
+}
+
+.result.show{
+  display:block;
+}
+
+.result-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  padding:6px 0;
+}
+
+.result-row .k{
+  color:var(--muted);
+  font-size:12.5px;
+}
+
+.result-row .v{
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  font-size:13.5px;
+}
+
+.result-row.total .v{
+  color:var(--amber);
+  font-size:17px;
+}
+
+.result-note{
+  color:var(--muted);
+  font-size:11.5px;
+  margin-top:10px;
+  line-height:1.5;
+}
+
+/* ---------- Footer ---------- */
+
+footer{
+  margin-top:30px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+  font-size:11.5px;
+  line-height:1.6;
+}
+
+footer b{
+  color:var(--text);
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <h1>TransitBoard</h1>
+    <p>
+      Smart bus tracking prototype — live position, arrival estimates,
+      passenger information and route planning using simulated GPS data.
+    </p>
+  </div>
+
+  <div class="clock">
+    <div class="time" id="clockTime">--:--:--</div>
+    <div class="date" id="clockDate">—</div>
+  </div>
+</header>
+
+<!-- Route Tabs -->
+<div class="tabs" id="routeTabs"></div>
+
+<div class="grid">
+
+<!-- ================= LEFT PANEL ================= -->
+
+<div class="panel">
+
+  <h2 id="routeTitle">Route</h2>
+
+  <p class="sub" id="routeSub">
+    Live stop-by-stop arrival board
+  </p>
+
+  <!-- Simple simulated campus map -->
+
+  <svg
+    id="campusMap"
+    viewBox="0 0 320 170"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+
+    <path
+      d="M30 130 L80 90 L150 105 L220 55 L285 30"
+      stroke="#F2B705"
+      stroke-width="4"
+      fill="none"
+      stroke-linecap="round"
+    />
+
+    <g fill="#F1EEE6">
+      <circle cx="30" cy="130" r="5"/>
+      <circle cx="80" cy="90" r="5"/>
+      <circle cx="150" cy="105" r="5"/>
+      <circle cx="220" cy="55" r="5"/>
+      <circle cx="285" cy="30" r="5"/>
+    </g>
+
+    <circle
+      id="mapBus"
+      cx="30"
+      cy="130"
+      r="8"
+      fill="#3FA796"
+    />
+
+    <text
+      id="mapBusLabel"
+      x="30"
+      y="133"
+      font-size="6"
+      text-anchor="middle"
+      fill="#fff"
+    >
+      B1
+    </text>
+
+  </svg>
+
+  <!-- Route stop list -->
+
+  <div class="route-line" id="routeLine"></div>
+
+</div>
+
+
+<!-- ================= RIGHT PANEL ================= -->
+
+<div class="panel">
+
+  <h2>Student & Admin Dashboard</h2>
+
+  <p class="sub">
+    Live passenger information, traffic simulation and admin controls.
+  </p>
+
+  <!-- Statistics -->
+
+  <div class="stat-grid">
+
+    <div class="stat-card">
+
+      <div class="stat-label">
+        Seats Available
+      </div>
+
+      <div
+        id="seatStat"
+        class="stat-value"
+      >
+        24 / 40
+      </div>
+
+    </div>
+
+
+    <div class="stat-card">
+
+      <div class="stat-label">
+        Traffic Level
+      </div>
+
+      <div
+        id="trafficValue"
+        class="stat-value"
+      >
+        0%
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- Traffic simulation -->
+
+  <div class="field">
+
+    <label for="trafficSlider">
+      Traffic Simulation
+    </label>
+
+    <input
+      id="trafficSlider"
+      type="range"
+      min="0"
+      max="50"
+      value="0"
+      style="width:100%"
+    >
+
+  </div>
+
+
+  <!-- Admin controls -->
+
+  <div class="field">
+
+    <label>
+      Admin Controls
+    </label>
+
+    <div class="admin-buttons">
+
+      <button
+        id="delayBtn"
+        class="delay-btn"
+      >
+        +5 min Delay
+      </button>
+
+      <button
+        id="fullBtn"
+        class="full-btn"
+      >
+        Bus Full
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- Alert -->
+
+  <div
+    id="alertBox"
+    class="alert"
+  ></div>
+
+
+  <hr
+    style="
+      border-color:#263049;
+      margin:16px 0;
+    "
+  >
+
+
+  <!-- Trip planner -->
+
+  <h2>
+    Plan a Trip
+  </h2>
+
+  <p class="sub">
+    Pick a route and two stops to estimate your journey.
+  </p>
+
+
+  <div class="field">
+
+    <label for="planRoute">
+      Route
+    </label>
+
+    <select id="planRoute"></select>
+
+  </div>
+
+
+  <div class="field">
+
+    <label for="planFrom">
+      Board at
+    </label>
+
+    <select id="planFrom"></select>
+
+  </div>
+
+
+  <div class="field">
+
+    <label for="planTo">
+      Get off at
+    </label>
+
+    <select id="planTo"></select>
+
+  </div>
+
+
+  <button
+    class="plan-btn"
+    id="planBtn"
+  >
+    Estimate Arrival
+  </button>
+
+
+  <!-- Trip result -->
+
+  <div
+    class="result"
+    id="planResult"
+  >
+
+    <div class="result-row">
+
+      <span class="k">
+        Next bus at boarding stop
+      </span>
+
+      <span
+        class="v"
+        id="rBus"
+      >
+        —
+      </span>
+
+    </div>
+
+
+    <div class="result-row">
+
+      <span class="k">
+        Wait time
+      </span>
+
+      <span
+        class="v"
+        id="rWait"
+      >
+        —
+      </span>
+
+    </div>
+
+
+    <div class="result-row">
+
+      <span class="k">
+        Ride duration
+      </span>
+
+      <span
+        class="v"
+        id="rRide"
+      >
+        —
+      </span>
+
+    </div>
+
+
+    <div class="result-row total">
+
+      <span class="k">
+        Estimated arrival
+      </span>
+
+      <span
+        class="v"
+        id="rArrive"
+      >
+        —
+      </span>
+
+    </div>
+
+
+    <p
+      class="result-note"
+      id="rNote"
+    ></p>
+
+  </div>
+
+</div>
+
+</div>
+
+
+<!-- Footer -->
+
+<footer>
+
+  <b>Prototype Mode —</b>
+
+  Bus locations, passenger occupancy and traffic conditions
+  are simulated using JavaScript. The prototype demonstrates
+  the core concepts of GPS tracking, ETA calculation,
+  route planning, traffic adjustment and passenger information
+  without requiring real-world GPS hardware or a backend server.
+
+</footer>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   MOCK ROUTE DATA
+   ========================================================= */
+
+const routes = [
+
+  {
+    id:'R7',
+    name:'Campus Loop',
+    color:'--amber',
+
+    period:18 * 60,
+
+    busCount:3,
+
+    stops:[
+      {
+        name:'Main Gate',
+        pos:0.00
+      },
+
+      {
+        name:'Library Circle',
+        pos:0.16
+      },
+
+      {
+        name:'Hostel Block C',
+        pos:0.34
+      },
+
+      {
+        name:'Sports Complex',
+        pos:0.52
+      },
+
+      {
+        name:'Food Court',
+        pos:0.70
+      },
+
+      {
+        name:'Admin Building',
+        pos:0.88
+      }
+    ]
+  },
+
+
+  {
+    id:'R12',
+    name:'Highway Express',
+    color:'--teal',
+
+    period:40 * 60,
+
+    busCount:2,
+
+    stops:[
+      {
+        name:'City Junction',
+        pos:0.00
+      },
+
+      {
+        name:'Toll Plaza',
+        pos:0.18
+      },
+
+      {
+        name:'Tech Park',
+        pos:0.40
+      },
+
+      {
+        name:'Riverside',
+        pos:0.58
+      },
+
+      {
+        name:'Central Mall',
+        pos:0.78
+      },
+
+      {
+        name:'Railway Station',
+        pos:0.94
+      }
+    ]
+  },
+
+
+  {
+    id:'R4',
+    name:'Old Town Connector',
+    color:'--violet',
+
+    period:26 * 60,
+
+    busCount:2,
+
+    stops:[
+      {
+        name:'Clock Tower',
+        pos:0.00
+      },
+
+      {
+        name:'Market Street',
+        pos:0.20
+      },
+
+      {
+        name:'Old Bridge',
+        pos:0.42
+      },
+
+      {
+        name:'Hospital',
+        pos:0.62
+      },
+
+      {
+        name:'Stadium',
+        pos:0.80
+      },
+
+      {
+        name:'Bus Depot',
+        pos:0.95
+      }
+    ]
+  }
+
+];
+
+
+/* =========================================================
+   GLOBAL STATE
+   ========================================================= */
+
+let activeRouteId = routes[0].id;
+
+let trafficDelay = 0;
+
+let busFull = false;
+
+
+/* =========================================================
+   HELPER FUNCTIONS
+   ========================================================= */
+
+function fmtClock(date){
+
+  return date.toLocaleTimeString(
+    [],
+    {
+      hour:'2-digit',
+      minute:'2-digit',
+      second:'2-digit',
+      hour12:false
+    }
+  );
+
+}
+
+
+function fmtDate(date){
+
+  return date.toLocaleDateString(
+    [],
+    {
+      weekday:'long',
+      month:'long',
+      day:'numeric'
+    }
+  );
+
+}
+
+
+function fmtMin(seconds){
+
+  const minutes = Math.round(seconds / 60);
+
+  if(minutes <= 0)
+    return 'Arriving';
+
+  if(minutes === 1)
+    return '1 min';
+
+  return minutes + ' min';
+
+}
+
+
+/*
+  Traffic increases the simulated route period.
+*/
+
+function effectivePeriod(route){
+
+  return route.period + trafficDelay * 60;
+
+}
+
+
+/*
+  Calculate current bus position.
+*/
+
+function busFraction(
+  route,
+  busIndex,
+  nowSec
+){
+
+  const headway =
+    effectivePeriod(route) /
+    route.busCount;
+
+  const t =
+    (
+      nowSec +
+      busIndex * headway
+    ) %
+    effectivePeriod(route);
+
+  return t /
+    effectivePeriod(route);
+
+}
+
+
+/*
+  Seconds until bus reaches stop.
+*/
+
+function etaSeconds(
+  route,
+  busFractionValue,
+  stopFraction
+){
+
+  let delta =
+    stopFraction -
+    busFractionValue;
+
+  if(delta < 0)
+    delta += 1;
+
+  return delta *
+    effectivePeriod(route);
+
+}
+
+
+/* =========================================================
+   CURRENT ROUTE
+   ========================================================= */
+
+function currentRoute(){
+
+  return routes.find(
+    r => r.id === activeRouteId
+  );
+
+}
+
+
+/* =========================================================
+   ROUTE TABS
+   ========================================================= */
+
+const tabsEl =
+  document.getElementById(
+    'routeTabs'
+  );
+
+
+function renderTabs(){
+
+  tabsEl.innerHTML = '';
+
+  routes.forEach(route => {
+
+    const el =
+      document.createElement('div');
+
+    el.className =
+      'tab' +
+      (
+        route.id === activeRouteId
+        ? ' active'
+        : ''
+      );
+
+    el.style.setProperty(
+      '--dot-color',
+      `var(${route.color})`
+    );
+
+    el.innerHTML = `
+
+      <span
+        class="dot"
+        style="
+          background:var(${route.color})
+        "
+      ></span>
+
+      <span class="id">
+        ${route.id}
+      </span>
+
+      ${route.name}
+
+    `;
+
+    el.addEventListener(
+      'click',
+      () => {
+
+        activeRouteId =
+          route.id;
+
+        renderTabs();
+
+        renderRoutePanel();
+
+      }
+    );
+
+    tabsEl.appendChild(el);
+
+  });
+
+}
+
+
+/* =========================================================
+   ROUTE PANEL
+   ========================================================= */
+
+const routeLineEl =
+  document.getElementById(
+    'routeLine'
+  );
+
+const routeTitleEl =
+  document.getElementById(
+    'routeTitle'
+  );
+
+const routeSubEl =
+  document.getElementById(
+    'routeSub'
+  );
+
+
+function renderRoutePanel(){
+
+  const route =
+    currentRoute();
+
+  routeTitleEl.textContent =
+    `${route.id} · ${route.name}`;
+
+  routeSubEl.textContent =
+    `${route.busCount} buses in service · full loop ≈ ${
+      Math.round(
+        effectivePeriod(route) / 60
+      )
+    } min`;
+
+  routeLineEl.style.setProperty(
+    '--route-color',
+    `var(${route.color})`
+  );
+
+  routeLineEl.innerHTML = '';
+
+
+  route.stops.forEach(stop => {
+
+    const row =
+      document.createElement('div');
+
+    row.className = 'stop';
+
+    row.innerHTML = `
+
+      <div class="stop-row">
+
+        <div>
+
+          <div class="stop-name">
+            ${stop.name}
+          </div>
+
+          <div class="stop-meta">
+            ${Math.round(stop.pos * 100)}% along route
+          </div>
+
+        </div>
+
+        <div
+          class="arrivals"
+          data-stop-arrivals="${stop.name}"
+        ></div>
+
+      </div>
+
+    `;
+
+    routeLineEl.appendChild(row);
+
+  });
+
+
+  updateLiveData();
+
+  populatePlanSelectors();
+
+}
+
+
+/* =========================================================
+   LIVE DATA UPDATE
+   ========================================================= */
+
+function updateLiveData(){
+
+  const route =
+    currentRoute();
+
+  const nowSec =
+    Date.now() / 1000;
+
+
+  /*
+    Arrival chips
+  */
+
+  route.stops.forEach(stop => {
+
+    const holder =
+      routeLineEl.querySelector(
+        `[data-stop-arrivals="${CSS.escape(stop.name)}"]`
+      );
+
+    if(!holder)
+      return;
+
+
+    const etas = [];
+
+
+    for(
+      let bus = 0;
+      bus < route.busCount;
+      bus++
+    ){
+
+      const bf =
+        busFraction(
+          route,
+          bus,
+          nowSec
+        );
+
+      etas.push({
+
+        bus:
+          'Bus ' + (bus + 1),
+
+        sec:
+          etaSeconds(
+            route,
+            bf,
+            stop.pos
+          )
+
+      });
+
+    }
+
+
+    etas.sort(
+      (a,b) =>
+        a.sec - b.sec
+    );
+
+
+    holder.innerHTML =
+      etas
+        .slice(0,2)
+        .map(
+          (eta,index) => `
+
+            <span
+              class="
+                arrival-chip
+                ${index === 0 ? 'soon' : ''}
+              "
+            >
+
+              <span class="bus-id">
+                ${eta.bus}
+              </span>
+
+              ${fmtMin(eta.sec)}
+
+            </span>
+
+          `
+        )
+        .join('');
+
+  });
+
+
+  /*
+    Bus markers on vertical route
+  */
+
+  routeLineEl
+    .querySelectorAll(
+      '.bus-marker'
+    )
+    .forEach(
+      marker => marker.remove()
+    );
+
+
+  const lineHeight =
+    routeLineEl.scrollHeight;
+
+
+  for(
+    let bus = 0;
+    bus < route.busCount;
+    bus++
+  ){
+
+    const bf =
+      busFraction(
+        route,
+        bus,
+        nowSec
+      );
+
+
+    const marker =
+      document.createElement('div');
+
+    marker.className =
+      'bus-marker';
+
+    marker.textContent =
+      'B' + (bus + 1);
+
+    marker.style.top =
+      (
+        bf *
+        (lineHeight - 20)
+      ) + 'px';
+
+    routeLineEl.appendChild(
+      marker
+    );
+
+  }
+
+
+  /*
+    Update map bus
+  */
+
+  const pathPoints = [
+
+    [30,130],
+    [80,90],
+    [150,105],
+    [220,55],
+    [285,30]
+
+  ];
+
+
+  const mapFraction =
+    busFraction(
+      route,
+      0,
+      nowSec
+    );
+
+
+  const segment =
+    mapFraction *
+    (pathPoints.length - 1);
+
+
+  const index =
+    Math.min(
+      pathPoints.length - 2,
+      Math.floor(segment)
+    );
+
+
+  const progress =
+    segment - index;
+
+
+  const x =
+    pathPoints[index][0] +
+    (
+      pathPoints[index + 1][0] -
+      pathPoints[index][0]
+    ) *
+    progress;
+
+
+  const y =
+    pathPoints[index][1] +
+    (
+      pathPoints[index + 1][1] -
+      pathPoints[index][1]
+    ) *
+    progress;
+
+
+  const mapBus =
+    document.getElementById(
+      'mapBus'
+    );
+
+  const mapBusLabel =
+    document.getElementById(
+      'mapBusLabel'
+    );
+
+
+  if(mapBus){
+
+    mapBus.setAttribute(
+      'cx',
+      x
+    );
+
+    mapBus.setAttribute(
+      'cy',
+      y
+    );
+
+  }
+
+
+  if(mapBusLabel){
+
+    mapBusLabel.setAttribute(
+      'x',
+      x
+    );
+
+    mapBusLabel.setAttribute(
+      'y',
+      y + 3
+    );
+
+  }
+
+
+  /*
+    Simulated occupancy
+  */
+
+  const occupancy =
+    busFull
+      ? 40
+      : Math.min(
+          39,
+          18 +
+          Math.floor(
+            (
+              Math.sin(
+                nowSec / 30
+              ) + 1
+            ) * 10
+          )
+        );
+
+
+  const seatStat =
+    document.getElementById(
+      'seatStat'
+    );
+
+
+  if(seatStat){
+
+    seatStat.textContent =
+      `${40 - occupancy} / 40`;
+
+  }
+
+
+  /*
+    Live clock
+  */
+
+  const now =
+    new Date();
+
+  document.getElementById(
+    'clockTime'
+  ).textContent =
+    fmtClock(now);
+
+  document.getElementById(
+    'clockDate'
+  ).textContent =
+    fmtDate(now);
+
+}
+
+
+/* =========================================================
+   TRIP PLANNER
+   ========================================================= */
+
+const planRouteEl =
+  document.getElementById(
+    'planRoute'
+  );
+
+const planFromEl =
+  document.getElementById(
+    'planFrom'
+  );
+
+const planToEl =
+  document.getElementById(
+    'planTo'
+  );
+
+const planBtn =
+  document.getElementById(
+    'planBtn'
+  );
+
+const planResult =
+  document.getElementById(
+    'planResult'
+  );
+
+
+function populatePlanSelectors(){
+
+  if(
+    planRouteEl.options.length === 0
+  ){
+
+    routes.forEach(route => {
+
+      const option =
+        document.createElement(
+          'option'
+        );
+
+      option.value =
+        route.id;
+
+      option.textContent =
+        `${route.id} · ${route.name}`;
+
+      planRouteEl.appendChild(
+        option
+      );
+
+    });
+
+  }
+
+
+  planRouteEl.value =
+    activeRouteId;
+
+  populateStopSelectors();
+
+}
+
+
+function populateStopSelectors(){
+
+  const route =
+    routes.find(
+      r =>
+        r.id === planRouteEl.value
+    );
+
+
+  planFromEl.innerHTML = '';
+
+  planToEl.innerHTML = '';
+
+
+  route.stops.forEach(
+    (stop,index) => {
+
+      const fromOption =
+        document.createElement(
+          'option'
+        );
+
+      fromOption.value =
+        index;
+
+      fromOption.textContent =
+        stop.name;
+
+
+      planFromEl.appendChild(
+        fromOption
+      );
+
+
+      const toOption =
+        document.createElement(
+          'option'
+        );
+
+      toOption.value =
+        index;
+
+      toOption.textContent =
+        stop.name;
+
+
+      planToEl.appendChild(
+        toOption
+      );
+
+    }
+  );
+
+
+  planToEl.selectedIndex =
+    route.stops.length - 1;
+
+}
+
+
+planRouteEl.addEventListener(
+  'change',
+  populateStopSelectors
+);
+
+
+/* =========================================================
+   TRIP CALCULATION
+   ========================================================= */
+
+planBtn.addEventListener(
+  'click',
+  () => {
+
+    const route =
+      routes.find(
+        r =>
+          r.id === planRouteEl.value
+      );
+
+
+    const fromIdx =
+      parseInt(
+        planFromEl.value,
+        10
+      );
+
+
+    const toIdx =
+      parseInt(
+        planToEl.value,
+        10
+      );
+
+
+    const fromStop =
+      route.stops[fromIdx];
+
+    const toStop =
+      route.stops[toIdx];
+
+
+    /*
+      Same stop validation
+    */
+
+    if(
+      fromIdx === toIdx
+    ){
+
+      document.getElementById(
+        'rNote'
+      ).textContent =
+        'Boarding and destination stops must be different.';
+
+      planResult.classList.add(
+        'show'
+      );
+
+      document.getElementById(
+        'rBus'
+      ).textContent = '—';
+
+      document.getElementById(
+        'rWait'
+      ).textContent = '—';
+
+      document.getElementById(
+        'rRide'
+      ).textContent = '—';
+
+      document.getElementById(
+        'rArrive'
+      ).textContent = '—';
+
+      return;
+
+    }
+
+
+    const nowSec =
+      Date.now() / 1000;
+
+
+    /*
+      Find soonest bus
+    */
+
+    let best = null;
+
+
+    for(
+      let bus = 0;
+      bus < route.busCount;
+      bus++
+    ){
+
+      const bf =
+        busFraction(
+          route,
+          bus,
+          nowSec
+        );
+
+
+      const wait =
+        etaSeconds(
+          route,
+          bf,
+          fromStop.pos
+        );
+
+
+      if(
+        !best ||
+        wait < best.wait
+      ){
+
+        best = {
+
+          bus:
+            bus + 1,
+
+          wait:
+            wait
+
+        };
+
+      }
+
+    }
+
+
+    /*
+      Ride duration
+    */
+
+    let rideDelta =
+      toStop.pos -
+      fromStop.pos;
+
+
+    if(
+      rideDelta < 0
+    ){
+
+      rideDelta += 1;
+
+    }
+
+
+    const rideSec =
+      rideDelta *
+      effectivePeriod(route);
+
+
+    const totalSec =
+      best.wait +
+      rideSec;
+
+
+    const arrival =
+      new Date(
+        Date.now() +
+        totalSec * 1000
+      );
+
+
+    /*
+      Display results
+    */
+
+    document.getElementById(
+      'rBus'
+    ).textContent =
+      'Bus ' + best.bus;
+
+
+    document.getElementById(
+      'rWait'
+    ).textContent =
+      fmtMin(best.wait);
+
+
+    document.getElementById(
+      'rRide'
+    ).textContent =
+      Math.round(
+        rideSec / 60
+      ) + ' min';
+
+
+    document.getElementById(
+      'rArrive'
+    ).textContent =
+      fmtClock(arrival);
+
+
+    document.getElementById(
+      'rNote'
+    ).textContent =
+      `${fromStop.name} → ${toStop.name} on ${route.id}, boarding the soonest available bus. Traffic simulation is currently ${trafficDelay}%.`;
+
+
+    planResult.classList.add(
+      'show'
+    );
+
+  }
+);
+
+
+/* =========================================================
+   TRAFFIC SIMULATION
+   ========================================================= */
+
+const trafficSlider =
+  document.getElementById(
+    'trafficSlider'
+  );
+
+
+trafficSlider.addEventListener(
+  'input',
+  event => {
+
+    trafficDelay =
+      parseInt(
+        event.target.value
+      );
+
+
+    document.getElementById(
+      'trafficValue'
+    ).textContent =
+      trafficDelay + '%';
+
+
+    const alert =
+      document.getElementById(
+        'alertBox'
+      );
+
+
+    if(
+      trafficDelay > 0
+    ){
+
+      alert.classList.add(
+        'show'
+      );
+
+      alert.textContent =
+        `Traffic detected. Bus speeds are reduced and ETA calculations have been adjusted by approximately ${Math.round(trafficDelay * 0.1)} minutes.`;
+
+    }
+    else{
+
+      alert.classList.remove(
+        'show'
+      );
+
+    }
+
+
+    renderRoutePanel();
+
+  }
+);
+
+
+/* =========================================================
+   ADMIN DELAY BUTTON
+   ========================================================= */
+
+document.getElementById(
+  'delayBtn'
+).addEventListener(
+  'click',
+  () => {
+
+    trafficDelay =
+      Math.min(
+        trafficDelay + 10,
+        50
+      );
+
+
+    trafficSlider.value =
+      trafficDelay;
+
+
+    trafficSlider.dispatchEvent(
+      new Event('input')
+    );
+
+  }
+);
+
+
+/* =========================================================
+   ADMIN BUS FULL BUTTON
+   ========================================================= */
+
+document.getElementById(
+  'fullBtn'
+).addEventListener(
+  'click',
+  () => {
+
+    busFull =
+      !busFull;
+
+
+    const alert =
+      document.getElementById(
+        'alertBox'
+      );
+
+
+    alert.classList.add(
+      'show'
+    );
+
+
+    if(busFull){
+
+      alert.textContent =
+        'Bus marked FULL — passengers should wait for the next available bus.';
+
+    }
+    else{
+
+      alert.textContent =
+        'Bus occupancy has been restored.';
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+renderTabs();
+
+renderRoutePanel();
+
+setInterval(
+  updateLiveData,
+  1000
+);
+
+</script>
+
+</body>
+</html>
