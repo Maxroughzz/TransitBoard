@@ -1,2044 +1,525 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TransitBoard — Enhanced Smart Bus Tracking Prototype</title>
-
+<title>TransitBoard v2 — Smart Bus Tracking Prototype</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap');
 
-:root{
-  --bg:#0B0F17;
-  --panel:#121826;
-  --panel-2:#171F30;
-  --line:#263049;
-  --text:#F1EEE6;
-  --muted:#8B93A8;
-  --amber:#F2B705;
-  --teal:#3FA796;
-  --violet:#9B8CE0;
-  --red:#E5533C;
-}
-
-*{box-sizing:border-box}
-
-html,body{
-  margin:0;
-  padding:0;
-}
-
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:'Inter',sans-serif;
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
-}
-
-.wrap{
-  max-width:1180px;
-  margin:0 auto;
-  padding:28px 20px 60px;
-}
-
-/* ---------- Header ---------- */
-
-header{
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap:20px;
-  flex-wrap:wrap;
-  border-bottom:1px solid var(--line);
-  padding-bottom:18px;
-  margin-bottom:22px;
-}
-
-.brand h1{
-  font-family:'Archivo',sans-serif;
-  font-weight:800;
-  font-size:clamp(26px,4vw,34px);
-  letter-spacing:-0.01em;
-  margin:0 0 4px;
-}
-
-.brand p{
-  margin:0;
-  color:var(--muted);
-  font-size:13.5px;
-  max-width:55ch;
-}
-
-.clock{
-  text-align:right;
-}
-
-.clock .time{
-  font-family:'IBM Plex Mono',monospace;
-  font-weight:600;
-  font-size:26px;
-  color:var(--amber);
-  font-variant-numeric:tabular-nums;
-  line-height:1;
-}
-
-.clock .date{
-  color:var(--muted);
-  font-size:12.5px;
-  margin-top:4px;
-}
-
-/* ---------- Route tabs ---------- */
-
-.tabs{
-  display:flex;
-  gap:10px;
-  margin-bottom:22px;
-  flex-wrap:wrap;
-}
-
-.tab{
-  background:var(--panel);
-  border:1px solid var(--line);
-  color:var(--text);
-  padding:10px 16px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:13.5px;
-  font-weight:600;
-  display:flex;
-  align-items:center;
-  gap:9px;
-  transition:border-color .15s ease,background .15s ease;
-}
-
-.tab .dot{
-  width:9px;
-  height:9px;
-  border-radius:50%;
-}
-
-.tab:hover{
-  border-color:var(--dot-color,var(--muted));
-}
-
-.tab.active{
-  background:var(--panel-2);
-  border-color:var(--dot-color,var(--amber));
-}
-
-.tab .id{
-  color:var(--muted);
-  font-family:'IBM Plex Mono',monospace;
-  font-weight:600;
-}
-
-/* ---------- Main grid ---------- */
-
-.grid{
-  display:grid;
-  grid-template-columns:1.15fr 1fr;
-  gap:20px;
-  align-items:start;
-}
-
-@media(max-width:880px){
-  .grid{
-    grid-template-columns:1fr;
+  /* ---------- Theme tokens ---------- */
+  :root, :root[data-theme="dark"]{
+    --bg:#0B0F17; --panel:#121826; --panel-2:#171F30; --line:#263049;
+    --text:#F1EEE6; --muted:#8B93A8; --shadow:none;
+    --c-amber:#F2B705;  --c-amber-ink:#F2B705;
+    --c-teal:#3FA796;   --c-teal-ink:#3FA796;
+    --c-violet:#9B8CE0; --c-violet-ink:#9B8CE0;
+    --ok:#3FA796; --late:#E5533C; --on-fill:#0B0F17;
   }
-}
+  :root[data-theme="light"]{
+    --bg:#F3F4F8; --panel:#FFFFFF; --panel-2:#F5F6FA; --line:#E1E4EC;
+    --text:#141A2B; --muted:#5A6378;
+    --shadow:0 1px 2px rgba(20,26,43,.06), 0 8px 20px -10px rgba(20,26,43,.14);
+    --c-amber:#F2B705;  --c-amber-ink:#8A5F00;
+    --c-teal:#2E8B84;   --c-teal-ink:#1F6F69;
+    --c-violet:#8B7FD6; --c-violet-ink:#5B4DB5;
+    --ok:#1F7A6E; --late:#C73E2A; --on-fill:#141A2B;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+    transition:background .25s ease, color .25s ease;
+  }
+  .wrap{ max-width:1200px; margin:0 auto; padding:24px 20px 56px; }
+  button{ font-family:inherit; color:inherit; }
+  :focus-visible{ outline:2px solid var(--c-teal-ink); outline-offset:2px; border-radius:6px; }
 
-.panel{
-  background:var(--panel);
-  border:1px solid var(--line);
-  border-radius:10px;
-  padding:20px;
-}
+  /* ---------- Header ---------- */
+  header{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .logo{ width:38px; height:38px; border-radius:10px; background:var(--c-amber); color:var(--on-fill);
+         display:grid; place-items:center; font-family:'Archivo',sans-serif; font-weight:800; font-size:18px; }
+  .brand h1{ font-family:'Archivo',sans-serif; font-weight:800; font-size:22px; margin:0; letter-spacing:-.01em; }
+  .brand p{ margin:2px 0 0; color:var(--muted); font-size:12.5px; }
+  .head-right{ display:flex; align-items:center; gap:14px; }
+  .live{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--muted); }
+  .live i{ width:8px; height:8px; border-radius:50%; background:var(--late); animation:pulse 1.6s infinite; }
+  @keyframes pulse{ 0%{ box-shadow:0 0 0 0 rgba(229,83,60,.5);} 70%{ box-shadow:0 0 0 7px rgba(229,83,60,0);} 100%{ box-shadow:0 0 0 0 rgba(229,83,60,0);} }
+  .clock{ text-align:right; }
+  .clock .time{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:22px; line-height:1; color:var(--c-amber-ink); font-variant-numeric:tabular-nums; }
+  .clock .date{ color:var(--muted); font-size:11.5px; margin-top:4px; }
+  .theme-btn{ width:40px; height:40px; border-radius:10px; border:1px solid var(--line); background:var(--panel);
+              display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow); }
+  .theme-btn:hover{ border-color:var(--muted); }
+  .theme-btn svg{ width:18px; height:18px; stroke:var(--text); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  :root[data-theme="dark"] .ico-moon{ display:none; }
+  :root[data-theme="light"] .ico-sun{ display:none; }
 
-.panel h2{
-  font-family:'Archivo',sans-serif;
-  font-size:15px;
-  font-weight:700;
-  margin:0 0 3px;
-}
+  /* ---------- Alert ---------- */
+  .alert{ display:none; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--late);
+          color:var(--text); border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .alert.show{ display:flex; }
+  .alert b{ color:var(--late); }
 
-.panel .sub{
-  color:var(--muted);
-  font-size:12.5px;
-  margin:0 0 18px;
-}
+  /* ---------- Stats ---------- */
+  .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  @media (max-width:760px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+  .stat{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); }
+  .stat .n{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:26px; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .stat .l{ color:var(--muted); font-size:12px; margin-top:4px; }
+  .stat.good .n{ color:var(--ok); } .stat.bad .n{ color:var(--late); }
 
-/* ---------- Campus Map ---------- */
+  /* ---------- Tabs ---------- */
+  .tabs{ display:inline-flex; gap:6px; padding:5px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; margin-bottom:18px; flex-wrap:wrap; }
+  .tab{ border:1px solid transparent; background:transparent; padding:8px 14px; border-radius:8px; cursor:pointer;
+        font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; color:var(--muted); }
+  .tab .dot{ width:9px; height:9px; border-radius:50%; background:var(--route); }
+  .tab .code{ font-family:'IBM Plex Mono',monospace; }
+  .tab:hover{ color:var(--text); }
+  .tab.active{ background:var(--panel); color:var(--text); border-color:var(--line); box-shadow:var(--shadow); }
 
-#campusMap{
-  width:100%;
-  background:#0E1523;
-  border-radius:8px;
-  margin-bottom:16px;
-  border:1px solid var(--line);
-}
+  /* ---------- Layout ---------- */
+  .grid{ display:grid; grid-template-columns:1.15fr 1fr; gap:18px; align-items:start; }
+  @media (max-width:900px){ .grid{ grid-template-columns:1fr; } }
+  .col{ display:flex; flex-direction:column; gap:18px; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:var(--shadow); }
+  .panel h2{ font-family:'Archivo',sans-serif; font-size:16px; font-weight:700; margin:0 0 3px; }
+  .sub{ color:var(--muted); font-size:12.5px; margin:0 0 16px; }
+  .panel-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
 
-/* ---------- Route line ---------- */
+  /* ---------- Route line ---------- */
+  .route-line{ position:relative; padding-left:30px; --route:var(--c-amber); --route-ink:var(--c-amber-ink); }
+  .route-line .rail{ position:absolute; left:9px; width:2px; background:var(--line); border-radius:2px; }
+  .rail-fill{ position:absolute; left:9px; width:2px; background:var(--route); border-radius:2px; opacity:.55; }
+  .stop{ position:relative; padding:13px 0; }
+  .stop .dot{ position:absolute; left:-26px; top:50%; transform:translateY(-50%); width:12px; height:12px; border-radius:50%;
+              background:var(--panel); border:2px solid var(--route); z-index:1; }
+  .stop.terminal .dot{ border-style:dashed; }
+  .stop-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .stop-name{ font-weight:600; font-size:14px; display:flex; align-items:center; gap:6px; }
+  .stop-meta{ color:var(--muted); font-size:11.5px; margin-top:2px; }
+  .star{ border:none; background:none; cursor:pointer; padding:2px; line-height:0; border-radius:6px; }
+  .star svg{ width:16px; height:16px; stroke:var(--muted); fill:none; stroke-width:2; stroke-linejoin:round; }
+  .star.on svg{ fill:var(--c-amber); stroke:var(--c-amber-ink); }
+  .arrivals{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .chip{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; padding:5px 8px; border-radius:7px;
+         background:var(--panel-2); border:1px solid var(--line); white-space:nowrap; display:flex; gap:6px; align-items:center; font-variant-numeric:tabular-nums; }
+  .chip .b{ color:var(--muted); font-weight:500; }
+  .chip.soon{ border-color:var(--route); color:var(--route-ink); }
+  .chip.late .t{ color:var(--late); }
+  .bus-marker{ position:absolute; left:-1px; width:22px; height:22px; border-radius:50%; background:var(--route); color:var(--on-fill);
+               display:grid; place-items:center; font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:700; z-index:2;
+               transform:translateY(-50%); transition:top 1s linear; box-shadow:0 0 0 3px var(--panel), 0 2px 8px rgba(0,0,0,.25); }
+  .bus-marker.late{ box-shadow:0 0 0 3px var(--panel), 0 0 0 5px var(--late); }
+  @media (prefers-reduced-motion:reduce){ .bus-marker{ transition:none; } .live i{ animation:none; } }
 
-.route-line{
-  position:relative;
-  padding-left:26px;
-}
+  /* ---------- Forms ---------- */
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:11.5px; color:var(--muted); margin-bottom:5px; font-weight:600; }
+  select{
+    width:100%; background-color:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:10px 34px 10px 12px;
+    border-radius:9px; font-size:13.5px; font-family:inherit; appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238B93A8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center;
+  }
+  .row2{ display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:end; }
+  .swap{ width:38px; height:38px; border-radius:9px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer; margin-bottom:12px; display:grid; place-items:center; }
+  .swap svg{ width:16px; height:16px; stroke:var(--text); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .btn{ width:100%; background:var(--c-amber); color:#141A2B; border:none; padding:11px 14px; border-radius:9px; font-weight:700; font-size:14px; cursor:pointer; font-family:'Archivo',sans-serif; }
+  .btn:hover{ filter:brightness(1.06); }
 
-.route-line::before{
-  content:'';
-  position:absolute;
-  left:9px;
-  top:6px;
-  bottom:6px;
-  width:2px;
-  background:var(--line);
-}
+  /* ---------- Plan result ---------- */
+  .result{ display:none; margin-top:16px; border-top:1px dashed var(--line); padding-top:14px; }
+  .result.show{ display:block; }
+  .hero{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  .hero .big{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:26px; color:var(--c-amber-ink); }
+  .hero .cap{ color:var(--muted); font-size:12px; }
+  .kv{ display:flex; justify-content:space-between; padding:5px 0; font-size:13px; }
+  .kv .k{ color:var(--muted); } .kv .v{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
+  .note{ color:var(--muted); font-size:11.5px; margin-top:8px; line-height:1.5; }
+  .pill{ display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:99px; border:1px solid currentColor; }
+  .pill.ok{ color:var(--ok); } .pill.late{ color:var(--late); } .pill.mid{ color:var(--c-amber-ink); }
 
-.stop{
-  position:relative;
-  padding:14px 0;
-}
+  /* ---------- Favourites ---------- */
+  .fav{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .fav:last-child{ border-bottom:none; }
+  .fav .nm{ font-weight:600; } .fav .rt{ color:var(--muted); font-size:11.5px; }
+  .fav .eta{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
+  .empty{ color:var(--muted); font-size:12.5px; padding:6px 0; }
 
-.stop:first-child{
-  padding-top:0;
-}
+  /* ---------- Fleet table ---------- */
+  .scroll{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
+  th{ text-align:left; font-size:11.5px; color:var(--muted); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--line); }
+  td{ padding:10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  tr.bus-row{ cursor:pointer; } tr.bus-row:hover td{ background:var(--panel-2); }
+  tr:last-child td{ border-bottom:none; }
+  .mono{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
+  .rtag{ display:inline-flex; align-items:center; gap:6px; font-weight:600; }
+  .rtag i{ width:8px; height:8px; border-radius:50%; background:var(--route); }
+  .bar{ width:90px; height:6px; border-radius:6px; background:var(--line); overflow:hidden; }
+  .bar b{ display:block; height:100%; background:var(--route); }
 
-.stop:last-child{
-  padding-bottom:0;
-}
-
-.stop::before{
-  content:'';
-  position:absolute;
-  left:-26px;
-  top:18px;
-  width:11px;
-  height:11px;
-  border-radius:50%;
-  background:var(--bg);
-  border:2px solid var(--route-color,var(--amber));
-}
-
-.stop-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-}
-
-.stop-name{
-  font-weight:600;
-  font-size:14.5px;
-}
-
-.stop-meta{
-  color:var(--muted);
-  font-size:11.5px;
-  margin-top:2px;
-}
-
-.arrivals{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
-
-.arrival-chip{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:12px;
-  font-weight:600;
-  padding:5px 9px;
-  border-radius:6px;
-  background:var(--panel-2);
-  border:1px solid var(--line);
-  white-space:nowrap;
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-
-.arrival-chip.soon{
-  border-color:var(--route-color,var(--amber));
-  color:var(--route-color,var(--amber));
-}
-
-.arrival-chip .bus-id{
-  color:var(--muted);
-  font-weight:500;
-}
-
-/* ---------- Bus marker ---------- */
-
-.bus-marker{
-  position:absolute;
-  left:-30.5px;
-  width:20px;
-  height:20px;
-  border-radius:50%;
-  background:var(--route-color,var(--amber));
-  color:#0B0F17;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:9.5px;
-  font-weight:700;
-  transition:top .9s linear;
-  box-shadow:
-    0 0 0 3px var(--bg),
-    0 0 10px -1px var(--route-color,var(--amber));
-  z-index:2;
-}
-
-/* ---------- Dashboard cards ---------- */
-
-.stat-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-bottom:14px;
-}
-
-.stat-card{
-  background:var(--panel-2);
-  padding:12px;
-  border-radius:8px;
-  border:1px solid var(--line);
-}
-
-.stat-label{
-  font-size:11px;
-  color:var(--muted);
-  margin-bottom:4px;
-}
-
-.stat-value{
-  font:700 22px 'Archivo',sans-serif;
-}
-
-/* ---------- Form ---------- */
-
-.field{
-  margin-bottom:14px;
-}
-
-.field label{
-  display:block;
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:6px;
-  font-weight:600;
-}
-
-select{
-  width:100%;
-  background:var(--panel-2);
-  border:1px solid var(--line);
-  color:var(--text);
-  padding:10px 12px;
-  border-radius:7px;
-  font-size:13.5px;
-  font-family:inherit;
-  appearance:none;
-  cursor:pointer;
-}
-
-select:focus{
-  outline:2px solid var(--amber);
-  outline-offset:1px;
-}
-
-input[type="range"]{
-  accent-color:var(--amber);
-  cursor:pointer;
-}
-
-/* ---------- Buttons ---------- */
-
-.plan-btn{
-  width:100%;
-  background:var(--amber);
-  color:#0B0F17;
-  border:none;
-  padding:11px 14px;
-  border-radius:7px;
-  font-weight:700;
-  font-size:14px;
-  cursor:pointer;
-  font-family:'Archivo',sans-serif;
-  margin-top:4px;
-}
-
-.plan-btn:hover{
-  filter:brightness(1.08);
-}
-
-.admin-buttons{
-  display:flex;
-  gap:8px;
-}
-
-.admin-buttons button{
-  flex:1;
-  padding:9px;
-  border:none;
-  border-radius:6px;
-  font-weight:700;
-  cursor:pointer;
-}
-
-.delay-btn{
-  background:var(--amber);
-  color:#0B0F17;
-}
-
-.full-btn{
-  background:var(--red);
-  color:white;
-}
-
-/* ---------- Alert ---------- */
-
-.alert{
-  display:none;
-  background:#2A1515;
-  border:1px solid var(--red);
-  color:#FCA5A5;
-  padding:10px;
-  border-radius:8px;
-  margin:10px 0;
-  font-size:12px;
-  line-height:1.5;
-}
-
-.alert.show{
-  display:block;
-}
-
-/* ---------- Result ---------- */
-
-.result{
-  margin-top:18px;
-  border-top:1px dashed var(--line);
-  padding-top:16px;
-  display:none;
-}
-
-.result.show{
-  display:block;
-}
-
-.result-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:baseline;
-  padding:6px 0;
-}
-
-.result-row .k{
-  color:var(--muted);
-  font-size:12.5px;
-}
-
-.result-row .v{
-  font-family:'IBM Plex Mono',monospace;
-  font-weight:600;
-  font-size:13.5px;
-}
-
-.result-row.total .v{
-  color:var(--amber);
-  font-size:17px;
-}
-
-.result-note{
-  color:var(--muted);
-  font-size:11.5px;
-  margin-top:10px;
-  line-height:1.5;
-}
-
-/* ---------- Footer ---------- */
-
-footer{
-  margin-top:30px;
-  padding-top:16px;
-  border-top:1px solid var(--line);
-  color:var(--muted);
-  font-size:11.5px;
-  line-height:1.6;
-}
-
-footer b{
-  color:var(--text);
-}
+  footer{ margin-top:26px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:11.5px; line-height:1.6; }
+  footer b{ color:var(--text); }
 </style>
 </head>
-
 <body>
-
 <div class="wrap">
 
-<header>
-  <div class="brand">
-    <h1>TransitBoard</h1>
-    <p>
-      Smart bus tracking prototype — live position, arrival estimates,
-      passenger information and route planning using simulated GPS data.
-    </p>
-  </div>
-
-  <div class="clock">
-    <div class="time" id="clockTime">--:--:--</div>
-    <div class="date" id="clockDate">—</div>
-  </div>
-</header>
-
-<!-- Route Tabs -->
-<div class="tabs" id="routeTabs"></div>
-
-<div class="grid">
-
-<!-- ================= LEFT PANEL ================= -->
-
-<div class="panel">
-
-  <h2 id="routeTitle">Route</h2>
-
-  <p class="sub" id="routeSub">
-    Live stop-by-stop arrival board
-  </p>
-
-  <!-- Simple simulated campus map -->
-
-  <svg
-    id="campusMap"
-    viewBox="0 0 320 170"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-
-    <path
-      d="M30 130 L80 90 L150 105 L220 55 L285 30"
-      stroke="#F2B705"
-      stroke-width="4"
-      fill="none"
-      stroke-linecap="round"
-    />
-
-    <g fill="#F1EEE6">
-      <circle cx="30" cy="130" r="5"/>
-      <circle cx="80" cy="90" r="5"/>
-      <circle cx="150" cy="105" r="5"/>
-      <circle cx="220" cy="55" r="5"/>
-      <circle cx="285" cy="30" r="5"/>
-    </g>
-
-    <circle
-      id="mapBus"
-      cx="30"
-      cy="130"
-      r="8"
-      fill="#3FA796"
-    />
-
-    <text
-      id="mapBusLabel"
-      x="30"
-      y="133"
-      font-size="6"
-      text-anchor="middle"
-      fill="#fff"
-    >
-      B1
-    </text>
-
-  </svg>
-
-  <!-- Route stop list -->
-
-  <div class="route-line" id="routeLine"></div>
-
-</div>
-
-
-<!-- ================= RIGHT PANEL ================= -->
-
-<div class="panel">
-
-  <h2>Student & Admin Dashboard</h2>
-
-  <p class="sub">
-    Live passenger information, traffic simulation and admin controls.
-  </p>
-
-  <!-- Statistics -->
-
-  <div class="stat-grid">
-
-    <div class="stat-card">
-
-      <div class="stat-label">
-        Seats Available
+  <header>
+    <div class="brand">
+      <div class="logo">T</div>
+      <div>
+        <h1>TransitBoard <span style="font-weight:600;color:var(--muted);font-size:14px">v2</span></h1>
+        <p>Smart bus tracking prototype · simulated campus &amp; city network</p>
       </div>
-
-      <div
-        id="seatStat"
-        class="stat-value"
-      >
-        24 / 40
-      </div>
-
     </div>
-
-
-    <div class="stat-card">
-
-      <div class="stat-label">
-        Traffic Level
-      </div>
-
-      <div
-        id="trafficValue"
-        class="stat-value"
-      >
-        0%
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- Traffic simulation -->
-
-  <div class="field">
-
-    <label for="trafficSlider">
-      Traffic Simulation
-    </label>
-
-    <input
-      id="trafficSlider"
-      type="range"
-      min="0"
-      max="50"
-      value="0"
-      style="width:100%"
-    >
-
-  </div>
-
-
-  <!-- Admin controls -->
-
-  <div class="field">
-
-    <label>
-      Admin Controls
-    </label>
-
-    <div class="admin-buttons">
-
-      <button
-        id="delayBtn"
-        class="delay-btn"
-      >
-        +5 min Delay
+    <div class="head-right">
+      <div class="live"><i></i>LIVE · simulated</div>
+      <div class="clock"><div class="time" id="clockTime">--:--:--</div><div class="date" id="clockDate">—</div></div>
+      <button class="theme-btn" id="themeBtn" aria-label="Switch between light and dark theme" title="Toggle theme">
+        <svg class="ico-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="ico-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       </button>
+    </div>
+  </header>
 
-      <button
-        id="fullBtn"
-        class="full-btn"
-      >
-        Bus Full
-      </button>
+  <div class="alert" id="alert" role="status"></div>
 
+  <section class="stats" aria-label="Network summary">
+    <div class="stat"><div class="n" id="stTotal">0</div><div class="l">Buses in service</div></div>
+    <div class="stat good"><div class="n" id="stOk">0</div><div class="l">Running on time</div></div>
+    <div class="stat bad"><div class="n" id="stLate">0</div><div class="l">Delayed</div></div>
+    <div class="stat"><div class="n" id="stAvg">0.0</div><div class="l">Avg delay (min)</div></div>
+  </section>
+
+  <div class="tabs" id="routeTabs" role="tablist" aria-label="Bus routes"></div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2 id="routeTitle">Route</h2><p class="sub" id="routeSub"></p></div>
+      </div>
+      <div class="route-line" id="routeLine"></div>
     </div>
 
-  </div>
+    <div class="col">
+      <div class="panel">
+        <h2>Plan a trip</h2>
+        <p class="sub">Pick stops and your walking time — we find a bus you can actually catch.</p>
+        <div class="field"><label for="planRoute">Route</label><select id="planRoute"></select></div>
+        <div class="row2">
+          <div class="field"><label for="planFrom">Board at</label><select id="planFrom"></select></div>
+          <button class="swap" id="swapBtn" aria-label="Swap boarding and destination stops" title="Swap">
+            <svg viewBox="0 0 24 24"><path d="M7 4v14M3 14l4 4 4-4M17 20V6M13 10l4-4 4 4"/></svg>
+          </button>
+          <div class="field"><label for="planTo">Get off at</label><select id="planTo"></select></div>
+        </div>
+        <div class="field">
+          <label for="planWalk">Walking time to boarding stop</label>
+          <select id="planWalk">
+            <option value="0">I'm at the stop</option>
+            <option value="2">2 min</option>
+            <option value="5">5 min</option>
+            <option value="10">10 min</option>
+          </select>
+        </div>
+        <button class="btn" id="planBtn">Plan my trip</button>
+        <div class="result" id="planResult" aria-live="polite"></div>
+      </div>
 
-
-  <!-- Alert -->
-
-  <div
-    id="alertBox"
-    class="alert"
-  ></div>
-
-
-  <hr
-    style="
-      border-color:#263049;
-      margin:16px 0;
-    "
-  >
-
-
-  <!-- Trip planner -->
-
-  <h2>
-    Plan a Trip
-  </h2>
-
-  <p class="sub">
-    Pick a route and two stops to estimate your journey.
-  </p>
-
-
-  <div class="field">
-
-    <label for="planRoute">
-      Route
-    </label>
-
-    <select id="planRoute"></select>
-
-  </div>
-
-
-  <div class="field">
-
-    <label for="planFrom">
-      Board at
-    </label>
-
-    <select id="planFrom"></select>
-
-  </div>
-
-
-  <div class="field">
-
-    <label for="planTo">
-      Get off at
-    </label>
-
-    <select id="planTo"></select>
-
-  </div>
-
-
-  <button
-    class="plan-btn"
-    id="planBtn"
-  >
-    Estimate Arrival
-  </button>
-
-
-  <!-- Trip result -->
-
-  <div
-    class="result"
-    id="planResult"
-  >
-
-    <div class="result-row">
-
-      <span class="k">
-        Next bus at boarding stop
-      </span>
-
-      <span
-        class="v"
-        id="rBus"
-      >
-        —
-      </span>
-
+      <div class="panel">
+        <h2>My stops</h2>
+        <p class="sub">Tap the star on any stop to pin it here.</p>
+        <div id="favList"></div>
+      </div>
     </div>
-
-
-    <div class="result-row">
-
-      <span class="k">
-        Wait time
-      </span>
-
-      <span
-        class="v"
-        id="rWait"
-      >
-        —
-      </span>
-
-    </div>
-
-
-    <div class="result-row">
-
-      <span class="k">
-        Ride duration
-      </span>
-
-      <span
-        class="v"
-        id="rRide"
-      >
-        —
-      </span>
-
-    </div>
-
-
-    <div class="result-row total">
-
-      <span class="k">
-        Estimated arrival
-      </span>
-
-      <span
-        class="v"
-        id="rArrive"
-      >
-        —
-      </span>
-
-    </div>
-
-
-    <p
-      class="result-note"
-      id="rNote"
-    ></p>
-
   </div>
 
+  <div class="panel" style="margin-top:18px">
+    <h2>Live fleet</h2>
+    <p class="sub">Every bus currently in service across all routes. Click a row to open its route.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Bus</th><th>Route</th><th>Next stop</th><th>Arrives</th><th>Lap progress</th><th>Status</th><th>Load</th></tr></thead>
+        <tbody id="fleetBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <b>Prototype notice —</b> Project Better Tomorrow · Review 2 build. Bus positions, delays and crowding levels are generated by a deterministic time-based simulation (not live GPS), reproducing the logic a real tracking feed would drive. Preferences (theme, pinned stops, last route) are stored only in this browser.
+  </footer>
 </div>
-
-</div>
-
-
-<!-- Footer -->
-
-<footer>
-
-  <b>Prototype Mode —</b>
-
-  Bus locations, passenger occupancy and traffic conditions
-  are simulated using JavaScript. The prototype demonstrates
-  the core concepts of GPS tracking, ETA calculation,
-  route planning, traffic adjustment and passenger information
-  without requiring real-world GPS hardware or a backend server.
-
-</footer>
-
-</div>
-
 
 <script>
-
-/* =========================================================
-   MOCK ROUTE DATA
-   ========================================================= */
-
-const routes = [
-
-  {
-    id:'R7',
-    name:'Campus Loop',
-    color:'--amber',
-
-    period:18 * 60,
-
-    busCount:3,
-
-    stops:[
-      {
-        name:'Main Gate',
-        pos:0.00
-      },
-
-      {
-        name:'Library Circle',
-        pos:0.16
-      },
-
-      {
-        name:'Hostel Block C',
-        pos:0.34
-      },
-
-      {
-        name:'Sports Complex',
-        pos:0.52
-      },
-
-      {
-        name:'Food Court',
-        pos:0.70
-      },
-
-      {
-        name:'Admin Building',
-        pos:0.88
-      }
-    ]
-  },
-
-
-  {
-    id:'R12',
-    name:'Highway Express',
-    color:'--teal',
-
-    period:40 * 60,
-
-    busCount:2,
-
-    stops:[
-      {
-        name:'City Junction',
-        pos:0.00
-      },
-
-      {
-        name:'Toll Plaza',
-        pos:0.18
-      },
-
-      {
-        name:'Tech Park',
-        pos:0.40
-      },
-
-      {
-        name:'Riverside',
-        pos:0.58
-      },
-
-      {
-        name:'Central Mall',
-        pos:0.78
-      },
-
-      {
-        name:'Railway Station',
-        pos:0.94
-      }
-    ]
-  },
-
-
-  {
-    id:'R4',
-    name:'Old Town Connector',
-    color:'--violet',
-
-    period:26 * 60,
-
-    busCount:2,
-
-    stops:[
-      {
-        name:'Clock Tower',
-        pos:0.00
-      },
-
-      {
-        name:'Market Street',
-        pos:0.20
-      },
-
-      {
-        name:'Old Bridge',
-        pos:0.42
-      },
-
-      {
-        name:'Hospital',
-        pos:0.62
-      },
-
-      {
-        name:'Stadium',
-        pos:0.80
-      },
-
-      {
-        name:'Bus Depot',
-        pos:0.95
-      }
-    ]
-  }
-
+/* =====================================================================
+   ENGINE — pure functions, no DOM. (Unit-tested separately.)
+   ===================================================================== */
+const ROUTES = [
+  { id:'R7',  name:'Campus Loop',        color:'amber',  period:18*60, buses:3, lengthKm:5.4,  seed:0.4,
+    stops:[ {name:'Main Gate',pos:0},{name:'Library Circle',pos:.16},{name:'Hostel Block C',pos:.34},
+            {name:'Sports Complex',pos:.52},{name:'Food Court',pos:.70},{name:'Admin Building',pos:.88} ] },
+  { id:'R12', name:'Highway Express',    color:'teal',   period:40*60, buses:2, lengthKm:28.0, seed:1.7,
+    stops:[ {name:'City Junction',pos:0},{name:'Toll Plaza',pos:.18},{name:'Tech Park',pos:.40},
+            {name:'Riverside',pos:.58},{name:'Central Mall',pos:.78},{name:'Railway Station',pos:.94} ] },
+  { id:'R4',  name:'Old Town Connector', color:'violet', period:26*60, buses:2, lengthKm:9.6,  seed:2.9,
+    stops:[ {name:'Clock Tower',pos:0},{name:'Market Street',pos:.20},{name:'Old Bridge',pos:.42},
+            {name:'Hospital',pos:.62},{name:'Stadium',pos:.80},{name:'Bus Depot',pos:.95} ] }
 ];
+const OCC_LABELS = ['Low','Medium','High'];
 
-
-/* =========================================================
-   GLOBAL STATE
-   ========================================================= */
-
-let activeRouteId = routes[0].id;
-
-let trafficDelay = 0;
-
-let busFull = false;
-
-
-/* =========================================================
-   HELPER FUNCTIONS
-   ========================================================= */
-
-function fmtClock(date){
-
-  return date.toLocaleTimeString(
-    [],
-    {
-      hour:'2-digit',
-      minute:'2-digit',
-      second:'2-digit',
-      hour12:false
-    }
-  );
-
+function headway(r){ return r.period / r.buses; }
+function fraction(r, i, t){ return ((t + i*headway(r)) % r.period) / r.period; }
+function delaySec(r, i, t){ return Math.round(Math.max(0, Math.sin(t/900 + r.seed*7 + i*1.9)) * 240 / 10) * 10; }
+function occupancy(r, i, t){
+  /* two blended waves give a smoother Low / Medium / High mix than a single sine */
+  const v = (Math.sin(t/1500 + r.seed*5 + i*1.3) + Math.sin(t/640 + r.seed*3 + i*2.2) + 2) / 4;
+  return v < .38 ? 0 : v < .64 ? 1 : 2;
+}
+function etaSec(r, i, t, stopPos){
+  let d = stopPos - fraction(r,i,t); if (d < 0) d += 1;
+  return d * r.period + delaySec(r,i,t);
+}
+function rideSec(r, fromPos, toPos){ let d = toPos - fromPos; if (d < 0) d += 1; return d * r.period; }
+function statusOf(delay){ return delay < 60 ? {text:'On time', cls:'ok'} : {text:'Delayed +'+Math.round(delay/60)+' min', cls:'late'}; }
+function busInfo(r, i, t){
+  const f = fraction(r,i,t), delay = delaySec(r,i,t);
+  let nextIdx = 0, best = Infinity;
+  r.stops.forEach((s,k)=>{ let d = s.pos - f; if (d < 0) d += 1; if (d < best){ best = d; nextIdx = k; } });
+  return { idx:i, label:'B'+(i+1), f, delay, status:statusOf(delay), occ:occupancy(r,i,t),
+           nextIdx, nextEta: best*r.period + delay };
+}
+/* Trip planning: choose buses reachable after walking, soonest first. */
+function planTrip(r, fromIdx, toIdx, walkMin, t){
+  const from = r.stops[fromIdx], to = r.stops[toIdx];
+  const walkSec = walkMin * 60;
+  const all = [];
+  for (let i=0;i<r.buses;i++) all.push({ bus:busInfo(r,i,t), wait:etaSec(r,i,t,from.pos) });
+  all.sort((a,b)=>a.wait-b.wait);
+  let catchable = all.filter(c => c.wait >= walkSec);
+  if (!catchable.length) catchable = [all[all.length-1]];
+  const ride = rideSec(r, from.pos, to.pos);
+  return catchable.slice(0,2).map(c => ({ bus:c.bus, wait:c.wait, leaveIn:c.wait - walkSec, ride, total:c.wait + ride }));
 }
 
+/* =====================================================================
+   UI
+   ===================================================================== */
+const $ = (s, el=document) => el.querySelector(s);
+let activeId = ROUTES[0].id;
+let planActive = false;
+let favs = new Set();
+let layoutCache = null;
+const markers = [];
+const lastFrac = {};
 
-function fmtDate(date){
+/* ---- storage (guarded) ---- */
+function store(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
+function load(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
 
-  return date.toLocaleDateString(
-    [],
-    {
-      weekday:'long',
-      month:'long',
-      day:'numeric'
-    }
-  );
+/* ---- helpers ---- */
+const route = () => ROUTES.find(r => r.id === activeId);
+const byId = id => ROUTES.find(r => r.id === id);
+const pad = n => String(n).padStart(2,'0');
+function fmtTime(d){ return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+function fmtHM(d){ return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function fmtMin(sec){ const m = Math.round(sec/60); return sec < 30 ? 'Arriving' : (m < 1 ? '<1 min' : m+' min'); }
+function colorVars(r){ return '--route:var(--c-'+r.color+');--route-ink:var(--c-'+r.color+'-ink)'; }
+const STAR = '<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
 
-}
+/* ---- theme ---- */
+function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); store('tb-theme', t); }
+(function initTheme(){
+  const saved = load('tb-theme');
+  const prefLight = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches;
+  applyTheme(saved || (prefLight ? 'light' : 'dark'));
+})();
+$('#themeBtn').addEventListener('click', () => {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
 
+/* ---- favourites ---- */
+try{ favs = new Set(JSON.parse(load('tb-favs') || '[]')); }catch(e){ favs = new Set(); }
+const favKey = (r, s) => r.id + '|' + s.name;
+function toggleFav(key){ favs.has(key) ? favs.delete(key) : favs.add(key); store('tb-favs', JSON.stringify([...favs])); updateAll(); }
 
-function fmtMin(seconds){
-
-  const minutes = Math.round(seconds / 60);
-
-  if(minutes <= 0)
-    return 'Arriving';
-
-  if(minutes === 1)
-    return '1 min';
-
-  return minutes + ' min';
-
-}
-
-
-/*
-  Traffic increases the simulated route period.
-*/
-
-function effectivePeriod(route){
-
-  return route.period + trafficDelay * 60;
-
-}
-
-
-/*
-  Calculate current bus position.
-*/
-
-function busFraction(
-  route,
-  busIndex,
-  nowSec
-){
-
-  const headway =
-    effectivePeriod(route) /
-    route.busCount;
-
-  const t =
-    (
-      nowSec +
-      busIndex * headway
-    ) %
-    effectivePeriod(route);
-
-  return t /
-    effectivePeriod(route);
-
-}
-
-
-/*
-  Seconds until bus reaches stop.
-*/
-
-function etaSeconds(
-  route,
-  busFractionValue,
-  stopFraction
-){
-
-  let delta =
-    stopFraction -
-    busFractionValue;
-
-  if(delta < 0)
-    delta += 1;
-
-  return delta *
-    effectivePeriod(route);
-
-}
-
-
-/* =========================================================
-   CURRENT ROUTE
-   ========================================================= */
-
-function currentRoute(){
-
-  return routes.find(
-    r => r.id === activeRouteId
-  );
-
-}
-
-
-/* =========================================================
-   ROUTE TABS
-   ========================================================= */
-
-const tabsEl =
-  document.getElementById(
-    'routeTabs'
-  );
-
-
+/* ---- tabs ---- */
 function renderTabs(){
-
-  tabsEl.innerHTML = '';
-
-  routes.forEach(route => {
-
-    const el =
-      document.createElement('div');
-
-    el.className =
-      'tab' +
-      (
-        route.id === activeRouteId
-        ? ' active'
-        : ''
-      );
-
-    el.style.setProperty(
-      '--dot-color',
-      `var(${route.color})`
-    );
-
-    el.innerHTML = `
-
-      <span
-        class="dot"
-        style="
-          background:var(${route.color})
-        "
-      ></span>
-
-      <span class="id">
-        ${route.id}
-      </span>
-
-      ${route.name}
-
-    `;
-
-    el.addEventListener(
-      'click',
-      () => {
-
-        activeRouteId =
-          route.id;
-
-        renderTabs();
-
-        renderRoutePanel();
-
-      }
-    );
-
-    tabsEl.appendChild(el);
-
+  const el = $('#routeTabs'); el.innerHTML = '';
+  ROUTES.forEach(r => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (r.id === activeId ? ' active' : '');
+    b.setAttribute('role','tab'); b.setAttribute('aria-selected', r.id === activeId);
+    b.style.cssText = colorVars(r);
+    b.innerHTML = '<span class="dot"></span><span class="code">'+r.id+'</span> '+r.name;
+    b.onclick = () => selectRoute(r.id);
+    el.appendChild(b);
   });
-
+}
+function selectRoute(id){
+  activeId = id; store('tb-route', id);
+  renderTabs(); buildRoute(); syncPlanRoute(); updateAll();
 }
 
-
-/* =========================================================
-   ROUTE PANEL
-   ========================================================= */
-
-const routeLineEl =
-  document.getElementById(
-    'routeLine'
-  );
-
-const routeTitleEl =
-  document.getElementById(
-    'routeTitle'
-  );
-
-const routeSubEl =
-  document.getElementById(
-    'routeSub'
-  );
-
-
-function renderRoutePanel(){
-
-  const route =
-    currentRoute();
-
-  routeTitleEl.textContent =
-    `${route.id} · ${route.name}`;
-
-  routeSubEl.textContent =
-    `${route.busCount} buses in service · full loop ≈ ${
-      Math.round(
-        effectivePeriod(route) / 60
-      )
-    } min`;
-
-  routeLineEl.style.setProperty(
-    '--route-color',
-    `var(${route.color})`
-  );
-
-  routeLineEl.innerHTML = '';
-
-
-  route.stops.forEach(stop => {
-
-    const row =
-      document.createElement('div');
-
-    row.className = 'stop';
-
-    row.innerHTML = `
-
-      <div class="stop-row">
-
-        <div>
-
-          <div class="stop-name">
-            ${stop.name}
-          </div>
-
-          <div class="stop-meta">
-            ${Math.round(stop.pos * 100)}% along route
-          </div>
-
-        </div>
-
-        <div
-          class="arrivals"
-          data-stop-arrivals="${stop.name}"
-        ></div>
-
-      </div>
-
-    `;
-
-    routeLineEl.appendChild(row);
-
+/* ---- route panel (built once per route, updated each tick) ---- */
+function buildRoute(){
+  const r = route();
+  $('#routeTitle').textContent = r.id + ' · ' + r.name;
+  $('#routeSub').textContent = r.buses + ' buses · ' + r.lengthKm + ' km loop · ' + Math.round(r.period/60) + ' min per lap';
+  const line = $('#routeLine'); line.style.cssText = colorVars(r); line.innerHTML = '';
+  line.insertAdjacentHTML('beforeend', '<div class="rail"></div><div class="rail-fill"></div>');
+  r.stops.forEach((s,k) => {
+    const row = document.createElement('div'); row.className = 'stop'; row.dataset.k = k;
+    row.innerHTML =
+      '<span class="dot"></span><div class="stop-row"><div>' +
+      '<div class="stop-name">'+s.name+'<button class="star" data-fav="'+favKey(r,s)+'" aria-label="Pin '+s.name+'">'+STAR+'</button></div>' +
+      '<div class="stop-meta">'+(s.pos*r.lengthKm).toFixed(1)+' km from start</div></div>' +
+      '<div class="arrivals" data-arr="'+k+'"></div></div>';
+    line.appendChild(row);
   });
-
-
-  updateLiveData();
-
-  populatePlanSelectors();
-
+  const end = document.createElement('div'); end.className = 'stop terminal';
+  end.innerHTML = '<span class="dot"></span><div class="stop-row"><div><div class="stop-name" style="color:var(--muted);font-weight:500">↺ Loops back to '+r.stops[0].name+'</div></div></div>';
+  line.appendChild(end);
+  line.querySelectorAll('.star').forEach(b => b.onclick = () => toggleFav(b.dataset.fav));
+  markers.length = 0;
+  for (let i=0;i<r.buses;i++){
+    const m = document.createElement('div'); m.className = 'bus-marker'; m.textContent = 'B'+(i+1);
+    line.appendChild(m); markers.push(m);
+  }
+  layoutCache = null;
+}
+function measure(){
+  const line = $('#routeLine'); const rows = [...line.querySelectorAll('.stop')];
+  const ys = rows.map(rw => rw.offsetTop + rw.offsetHeight/2);
+  layoutCache = { ys, key: ys.join(',') };
+  const rail = $('.rail', line), fill = $('.rail-fill', line);
+  rail.style.top = ys[0] + 'px'; rail.style.height = (ys[ys.length-1]-ys[0]) + 'px';
+  fill.style.top = ys[0] + 'px';
+}
+function busY(r, f){
+  const P = r.stops.map(s => s.pos).concat(1), Y = layoutCache.ys;
+  let k = 0; while (k < P.length-2 && f >= P[k+1]) k++;
+  const t = (f - P[k]) / (P[k+1] - P[k]);
+  return Y[k] + t * (Y[k+1] - Y[k]);
 }
 
-
-/* =========================================================
-   LIVE DATA UPDATE
-   ========================================================= */
-
-function updateLiveData(){
-
-  const route =
-    currentRoute();
-
-  const nowSec =
-    Date.now() / 1000;
-
-
-  /*
-    Arrival chips
-  */
-
-  route.stops.forEach(stop => {
-
-    const holder =
-      routeLineEl.querySelector(
-        `[data-stop-arrivals="${CSS.escape(stop.name)}"]`
-      );
-
-    if(!holder)
-      return;
-
-
+/* ---- per-second update ---- */
+function updateRoute(t){
+  const r = route();
+  const ys = [...document.querySelectorAll('#routeLine .stop')].map(rw => rw.offsetTop + rw.offsetHeight/2).join(',');
+  if (!layoutCache || layoutCache.key !== ys) measure();
+  r.stops.forEach((s,k) => {
     const etas = [];
-
-
-    for(
-      let bus = 0;
-      bus < route.busCount;
-      bus++
-    ){
-
-      const bf =
-        busFraction(
-          route,
-          bus,
-          nowSec
-        );
-
-      etas.push({
-
-        bus:
-          'Bus ' + (bus + 1),
-
-        sec:
-          etaSeconds(
-            route,
-            bf,
-            stop.pos
-          )
-
-      });
-
-    }
-
-
-    etas.sort(
-      (a,b) =>
-        a.sec - b.sec
-    );
-
-
-    holder.innerHTML =
-      etas
-        .slice(0,2)
-        .map(
-          (eta,index) => `
-
-            <span
-              class="
-                arrival-chip
-                ${index === 0 ? 'soon' : ''}
-              "
-            >
-
-              <span class="bus-id">
-                ${eta.bus}
-              </span>
-
-              ${fmtMin(eta.sec)}
-
-            </span>
-
-          `
-        )
-        .join('');
-
+    for (let i=0;i<r.buses;i++) etas.push({ b:'B'+(i+1), sec:etaSec(r,i,t,s.pos), late:delaySec(r,i,t) >= 60 });
+    etas.sort((a,b)=>a.sec-b.sec);
+    $('[data-arr="'+k+'"]').innerHTML = etas.slice(0,2).map((e,n) =>
+      '<span class="chip'+(n===0?' soon':'')+(e.late?' late':'')+'"><span class="b">'+e.b+'</span><span class="t">'+fmtMin(e.sec)+'</span></span>').join('');
   });
-
-
-  /*
-    Bus markers on vertical route
-  */
-
-  routeLineEl
-    .querySelectorAll(
-      '.bus-marker'
-    )
-    .forEach(
-      marker => marker.remove()
-    );
-
-
-  const lineHeight =
-    routeLineEl.scrollHeight;
-
-
-  for(
-    let bus = 0;
-    bus < route.busCount;
-    bus++
-  ){
-
-    const bf =
-      busFraction(
-        route,
-        bus,
-        nowSec
-      );
-
-
-    const marker =
-      document.createElement('div');
-
-    marker.className =
-      'bus-marker';
-
-    marker.textContent =
-      'B' + (bus + 1);
-
-    marker.style.top =
-      (
-        bf *
-        (lineHeight - 20)
-      ) + 'px';
-
-    routeLineEl.appendChild(
-      marker
-    );
-
+  document.querySelectorAll('#routeLine .star').forEach(b => b.classList.toggle('on', favs.has(b.dataset.fav)));
+  for (let i=0;i<r.buses;i++){
+    const m = markers[i], f = fraction(r,i,t), y = busY(r,f), key = r.id+i;
+    const wrapped = lastFrac[key] !== undefined && f < lastFrac[key] - .5;
+    if (wrapped){ m.style.transition = 'none'; }
+    m.style.top = y + 'px';
+    if (wrapped){ void m.offsetHeight; m.style.transition = ''; }
+    lastFrac[key] = f;
+    m.classList.toggle('late', delaySec(r,i,t) >= 60);
+    m.title = 'Bus '+(i+1)+' · '+statusOf(delaySec(r,i,t)).text;
   }
-
-
-  /*
-    Update map bus
-  */
-
-  const pathPoints = [
-
-    [30,130],
-    [80,90],
-    [150,105],
-    [220,55],
-    [285,30]
-
-  ];
-
-
-  const mapFraction =
-    busFraction(
-      route,
-      0,
-      nowSec
-    );
-
-
-  const segment =
-    mapFraction *
-    (pathPoints.length - 1);
-
-
-  const index =
-    Math.min(
-      pathPoints.length - 2,
-      Math.floor(segment)
-    );
-
-
-  const progress =
-    segment - index;
-
-
-  const x =
-    pathPoints[index][0] +
-    (
-      pathPoints[index + 1][0] -
-      pathPoints[index][0]
-    ) *
-    progress;
-
-
-  const y =
-    pathPoints[index][1] +
-    (
-      pathPoints[index + 1][1] -
-      pathPoints[index][1]
-    ) *
-    progress;
-
-
-  const mapBus =
-    document.getElementById(
-      'mapBus'
-    );
-
-  const mapBusLabel =
-    document.getElementById(
-      'mapBusLabel'
-    );
-
-
-  if(mapBus){
-
-    mapBus.setAttribute(
-      'cx',
-      x
-    );
-
-    mapBus.setAttribute(
-      'cy',
-      y
-    );
-
-  }
-
-
-  if(mapBusLabel){
-
-    mapBusLabel.setAttribute(
-      'x',
-      x
-    );
-
-    mapBusLabel.setAttribute(
-      'y',
-      y + 3
-    );
-
-  }
-
-
-  /*
-    Simulated occupancy
-  */
-
-  const occupancy =
-    busFull
-      ? 40
-      : Math.min(
-          39,
-          18 +
-          Math.floor(
-            (
-              Math.sin(
-                nowSec / 30
-              ) + 1
-            ) * 10
-          )
-        );
-
-
-  const seatStat =
-    document.getElementById(
-      'seatStat'
-    );
-
-
-  if(seatStat){
-
-    seatStat.textContent =
-      `${40 - occupancy} / 40`;
-
-  }
-
-
-  /*
-    Live clock
-  */
-
-  const now =
-    new Date();
-
-  document.getElementById(
-    'clockTime'
-  ).textContent =
-    fmtClock(now);
-
-  document.getElementById(
-    'clockDate'
-  ).textContent =
-    fmtDate(now);
-
+  const fill = $('#routeLine .rail-fill'), lead = Math.max(...markers.map((_,i)=>busY(r,fraction(r,i,t))));
+  fill.style.height = Math.max(0, lead - layoutCache.ys[0]) + 'px';
+}
+function updateFleet(t){
+  const rows = [], agg = { total:0, ok:0, late:0, sum:0 };
+  ROUTES.forEach(r => { for (let i=0;i<r.buses;i++){
+    const b = busInfo(r,i,t); agg.total++; agg.sum += b.delay; b.status.cls==='ok' ? agg.ok++ : agg.late++;
+    rows.push(
+      '<tr class="bus-row" data-r="'+r.id+'" style="'+colorVars(r)+'"><td class="mono">'+r.id+'-'+b.label+'</td>' +
+      '<td><span class="rtag"><i></i>'+r.name+'</span></td><td>'+r.stops[b.nextIdx].name+'</td>' +
+      '<td class="mono">'+fmtMin(b.nextEta)+'</td><td><div class="bar"><b style="width:'+(b.f*100).toFixed(0)+'%"></b></div></td>' +
+      '<td><span class="pill '+b.status.cls+'">'+b.status.text+'</span></td>' +
+      '<td><span class="pill '+(b.occ===0?'ok':b.occ===1?'mid':'late')+'">'+OCC_LABELS[b.occ]+'</span></td></tr>');
+  }});
+  $('#fleetBody').innerHTML = rows.join('');
+  document.querySelectorAll('.bus-row').forEach(tr => tr.onclick = () => selectRoute(tr.dataset.r));
+  $('#stTotal').textContent = agg.total; $('#stOk').textContent = agg.ok; $('#stLate').textContent = agg.late;
+  $('#stAvg').textContent = (agg.sum/agg.total/60).toFixed(1);
+  /* dynamic alert: worst delayed bus */
+  let worst = null;
+  ROUTES.forEach(r => { for (let i=0;i<r.buses;i++){ const d = delaySec(r,i,t); if (d >= 150 && (!worst || d > worst.d)) worst = { r, i, d }; } });
+  const al = $('#alert');
+  if (worst){ al.innerHTML = '<b>Service notice</b> — '+worst.r.id+' '+worst.r.name+' · Bus '+(worst.i+1)+' is running about '+Math.round(worst.d/60)+' min behind schedule.'; al.classList.add('show'); }
+  else al.classList.remove('show');
+}
+function updateFavs(t){
+  const items = [];
+  favs.forEach(key => {
+    const [rid, name] = key.split('|'); const r = byId(rid); if (!r) return;
+    const s = r.stops.find(x => x.name === name); if (!s) return;
+    let best = Infinity, who = '';
+    for (let i=0;i<r.buses;i++){ const e = etaSec(r,i,t,s.pos); if (e < best){ best = e; who = 'B'+(i+1); } }
+    items.push({ r, s, best, who, key });
+  });
+  items.sort((a,b)=>a.best-b.best);
+  $('#favList').innerHTML = items.length ? items.map(it =>
+    '<div class="fav" style="'+colorVars(it.r)+'"><div><div class="nm">'+it.s.name+'</div><div class="rt">'+it.r.id+' · '+it.r.name+'</div></div>' +
+    '<div style="display:flex;align-items:center;gap:10px"><span class="eta">'+it.who+' · '+fmtMin(it.best)+'</span>' +
+    '<button class="star on" data-fav="'+it.key+'" aria-label="Unpin '+it.s.name+'">'+STAR+'</button></div></div>').join('')
+    : '<div class="empty">No pinned stops yet.</div>';
+  document.querySelectorAll('#favList .star').forEach(b => b.onclick = () => toggleFav(b.dataset.fav));
 }
 
-
-/* =========================================================
-   TRIP PLANNER
-   ========================================================= */
-
-const planRouteEl =
-  document.getElementById(
-    'planRoute'
-  );
-
-const planFromEl =
-  document.getElementById(
-    'planFrom'
-  );
-
-const planToEl =
-  document.getElementById(
-    'planTo'
-  );
-
-const planBtn =
-  document.getElementById(
-    'planBtn'
-  );
-
-const planResult =
-  document.getElementById(
-    'planResult'
-  );
-
-
-function populatePlanSelectors(){
-
-  if(
-    planRouteEl.options.length === 0
-  ){
-
-    routes.forEach(route => {
-
-      const option =
-        document.createElement(
-          'option'
-        );
-
-      option.value =
-        route.id;
-
-      option.textContent =
-        `${route.id} · ${route.name}`;
-
-      planRouteEl.appendChild(
-        option
-      );
-
-    });
-
-  }
-
-
-  planRouteEl.value =
-    activeRouteId;
-
-  populateStopSelectors();
-
+/* ---- trip planner ---- */
+function syncPlanRoute(){
+  const sel = $('#planRoute');
+  if (!sel.options.length) ROUTES.forEach(r => sel.add(new Option(r.id+' · '+r.name, r.id)));
+  sel.value = activeId; fillStops();
 }
-
-
-function populateStopSelectors(){
-
-  const route =
-    routes.find(
-      r =>
-        r.id === planRouteEl.value
-    );
-
-
-  planFromEl.innerHTML = '';
-
-  planToEl.innerHTML = '';
-
-
-  route.stops.forEach(
-    (stop,index) => {
-
-      const fromOption =
-        document.createElement(
-          'option'
-        );
-
-      fromOption.value =
-        index;
-
-      fromOption.textContent =
-        stop.name;
-
-
-      planFromEl.appendChild(
-        fromOption
-      );
-
-
-      const toOption =
-        document.createElement(
-          'option'
-        );
-
-      toOption.value =
-        index;
-
-      toOption.textContent =
-        stop.name;
-
-
-      planToEl.appendChild(
-        toOption
-      );
-
-    }
-  );
-
-
-  planToEl.selectedIndex =
-    route.stops.length - 1;
-
+function fillStops(){
+  const r = byId($('#planRoute').value), f = $('#planFrom'), t = $('#planTo');
+  f.innerHTML = ''; t.innerHTML = '';
+  r.stops.forEach((s,i) => { f.add(new Option(s.name, i)); t.add(new Option(s.name, i)); });
+  t.selectedIndex = r.stops.length - 1;
 }
-
-
-planRouteEl.addEventListener(
-  'change',
-  populateStopSelectors
-);
-
-
-/* =========================================================
-   TRIP CALCULATION
-   ========================================================= */
-
-planBtn.addEventListener(
-  'click',
-  () => {
-
-    const route =
-      routes.find(
-        r =>
-          r.id === planRouteEl.value
-      );
-
-
-    const fromIdx =
-      parseInt(
-        planFromEl.value,
-        10
-      );
-
-
-    const toIdx =
-      parseInt(
-        planToEl.value,
-        10
-      );
-
-
-    const fromStop =
-      route.stops[fromIdx];
-
-    const toStop =
-      route.stops[toIdx];
-
-
-    /*
-      Same stop validation
-    */
-
-    if(
-      fromIdx === toIdx
-    ){
-
-      document.getElementById(
-        'rNote'
-      ).textContent =
-        'Boarding and destination stops must be different.';
-
-      planResult.classList.add(
-        'show'
-      );
-
-      document.getElementById(
-        'rBus'
-      ).textContent = '—';
-
-      document.getElementById(
-        'rWait'
-      ).textContent = '—';
-
-      document.getElementById(
-        'rRide'
-      ).textContent = '—';
-
-      document.getElementById(
-        'rArrive'
-      ).textContent = '—';
-
-      return;
-
-    }
-
-
-    const nowSec =
-      Date.now() / 1000;
-
-
-    /*
-      Find soonest bus
-    */
-
-    let best = null;
-
-
-    for(
-      let bus = 0;
-      bus < route.busCount;
-      bus++
-    ){
-
-      const bf =
-        busFraction(
-          route,
-          bus,
-          nowSec
-        );
-
-
-      const wait =
-        etaSeconds(
-          route,
-          bf,
-          fromStop.pos
-        );
-
-
-      if(
-        !best ||
-        wait < best.wait
-      ){
-
-        best = {
-
-          bus:
-            bus + 1,
-
-          wait:
-            wait
-
-        };
-
-      }
-
-    }
-
-
-    /*
-      Ride duration
-    */
-
-    let rideDelta =
-      toStop.pos -
-      fromStop.pos;
-
-
-    if(
-      rideDelta < 0
-    ){
-
-      rideDelta += 1;
-
-    }
-
-
-    const rideSec =
-      rideDelta *
-      effectivePeriod(route);
-
-
-    const totalSec =
-      best.wait +
-      rideSec;
-
-
-    const arrival =
-      new Date(
-        Date.now() +
-        totalSec * 1000
-      );
-
-
-    /*
-      Display results
-    */
-
-    document.getElementById(
-      'rBus'
-    ).textContent =
-      'Bus ' + best.bus;
-
-
-    document.getElementById(
-      'rWait'
-    ).textContent =
-      fmtMin(best.wait);
-
-
-    document.getElementById(
-      'rRide'
-    ).textContent =
-      Math.round(
-        rideSec / 60
-      ) + ' min';
-
-
-    document.getElementById(
-      'rArrive'
-    ).textContent =
-      fmtClock(arrival);
-
-
-    document.getElementById(
-      'rNote'
-    ).textContent =
-      `${fromStop.name} → ${toStop.name} on ${route.id}, boarding the soonest available bus. Traffic simulation is currently ${trafficDelay}%.`;
-
-
-    planResult.classList.add(
-      'show'
-    );
-
-  }
-);
-
-
-/* =========================================================
-   TRAFFIC SIMULATION
-   ========================================================= */
-
-const trafficSlider =
-  document.getElementById(
-    'trafficSlider'
-  );
-
-
-trafficSlider.addEventListener(
-  'input',
-  event => {
-
-    trafficDelay =
-      parseInt(
-        event.target.value
-      );
-
-
-    document.getElementById(
-      'trafficValue'
-    ).textContent =
-      trafficDelay + '%';
-
-
-    const alert =
-      document.getElementById(
-        'alertBox'
-      );
-
-
-    if(
-      trafficDelay > 0
-    ){
-
-      alert.classList.add(
-        'show'
-      );
-
-      alert.textContent =
-        `Traffic detected. Bus speeds are reduced and ETA calculations have been adjusted by approximately ${Math.round(trafficDelay * 0.1)} minutes.`;
-
-    }
-    else{
-
-      alert.classList.remove(
-        'show'
-      );
-
-    }
-
-
-    renderRoutePanel();
-
-  }
-);
-
-
-/* =========================================================
-   ADMIN DELAY BUTTON
-   ========================================================= */
-
-document.getElementById(
-  'delayBtn'
-).addEventListener(
-  'click',
-  () => {
-
-    trafficDelay =
-      Math.min(
-        trafficDelay + 10,
-        50
-      );
-
-
-    trafficSlider.value =
-      trafficDelay;
-
-
-    trafficSlider.dispatchEvent(
-      new Event('input')
-    );
-
-  }
-);
-
-
-/* =========================================================
-   ADMIN BUS FULL BUTTON
-   ========================================================= */
-
-document.getElementById(
-  'fullBtn'
-).addEventListener(
-  'click',
-  () => {
-
-    busFull =
-      !busFull;
-
-
-    const alert =
-      document.getElementById(
-        'alertBox'
-      );
-
-
-    alert.classList.add(
-      'show'
-    );
-
-
-    if(busFull){
-
-      alert.textContent =
-        'Bus marked FULL — passengers should wait for the next available bus.';
-
-    }
-    else{
-
-      alert.textContent =
-        'Bus occupancy has been restored.';
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   INITIALIZE
-   ========================================================= */
-
-renderTabs();
-
-renderRoutePanel();
-
-setInterval(
-  updateLiveData,
-  1000
-);
-
+function renderPlan(t){
+  const box = $('#planResult'); if (!planActive){ box.classList.remove('show'); return; }
+  const r = byId($('#planRoute').value), a = +$('#planFrom').value, b = +$('#planTo').value, walk = +$('#planWalk').value;
+  box.classList.add('show');
+  if (a === b){ box.innerHTML = '<div class="empty">Choose two different stops to plan a trip.</div>'; return; }
+  const opts = planTrip(r, a, b, walk, t), best = opts[0], alt = opts[1];
+  const arrive = new Date(Date.now() + best.total*1000);
+  const leave = best.leaveIn < 20 ? 'Leave now' : 'Leave in ' + fmtMin(best.leaveIn);
+  box.innerHTML =
+    '<div class="hero"><span class="big">'+leave+'</span><span class="pill '+best.bus.status.cls+'">'+best.bus.status.text+'</span></div>' +
+    '<div class="cap" style="color:var(--muted);font-size:12px;margin-bottom:8px">Catch '+r.id+'-'+best.bus.label+' at '+r.stops[a].name+' · crowding: '+OCC_LABELS[best.bus.occ]+'</div>' +
+    '<div class="kv"><span class="k">Bus reaches your stop in</span><span class="v">'+fmtMin(best.wait)+'</span></div>' +
+    '<div class="kv"><span class="k">Ride duration</span><span class="v">'+Math.round(best.ride/60)+' min</span></div>' +
+    '<div class="kv"><span class="k">Arrive at '+r.stops[b].name+'</span><span class="v" style="color:var(--c-amber-ink)">'+fmtHM(arrive)+'</span></div>' +
+    (alt ? '<div class="note">Missed it? Next option: '+r.id+'-'+alt.bus.label+', arriving at '+fmtHM(new Date(Date.now()+alt.total*1000))+'.</div>' : '') +
+    '<div class="note">Delays and walking time are included in the estimate.</div>';
+}
+$('#planBtn').onclick = () => { planActive = true; renderPlan(Date.now()/1000); };
+$('#planRoute').onchange = () => { fillStops(); renderPlan(Date.now()/1000); };
+['#planFrom','#planTo','#planWalk'].forEach(id => $(id).onchange = () => renderPlan(Date.now()/1000));
+$('#swapBtn').onclick = () => { const f=$('#planFrom'), t=$('#planTo'), x=f.value; f.value=t.value; t.value=x; renderPlan(Date.now()/1000); };
+
+/* ---- main loop ---- */
+function updateAll(){
+  const t = Date.now()/1000, d = new Date();
+  $('#clockTime').textContent = fmtTime(d);
+  $('#clockDate').textContent = d.toLocaleDateString([], { weekday:'long', month:'long', day:'numeric' });
+  updateRoute(t); updateFleet(t); updateFavs(t); renderPlan(t);
+}
+(function boot(){
+  const saved = load('tb-route'); if (saved && byId(saved)) activeId = saved;
+  renderTabs(); buildRoute(); syncPlanRoute(); updateAll();
+  setInterval(updateAll, 1000);
+  window.addEventListener('resize', () => { layoutCache = null; });
+})();
 </script>
-
 </body>
 </html>
