@@ -4,9 +4,7 @@ A browser-based smart bus tracker that shows where buses are, when they reach yo
 
 Built for **Project Better Tomorrow** (Design Thinking: Empathize, Define, Ideate with AI).
 
-| Light theme | Dark theme |
-|---|---|
-| ![Light theme](screenshots/light.png) | ![Dark theme](screenshots/dark.png) |
+
 
 ## Contents
 
