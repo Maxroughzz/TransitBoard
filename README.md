@@ -213,6 +213,4 @@ All generated logic was reviewed and tested before it was accepted.
 - [ ] Real street map and audio announcements
 - [ ] Usability testing with a larger group
 
-## Author
 
-Your Name, Your College, Project Better Tomorrow
