@@ -1,525 +1,220 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TransitBoard v2 — Smart Bus Tracking Prototype</title>
+<title>TransitBoard — Smart Bus Tracking</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap');
-
-  /* ---------- Theme tokens ---------- */
-  :root, :root[data-theme="dark"]{
-    --bg:#0B0F17; --panel:#121826; --panel-2:#171F30; --line:#263049;
-    --text:#F1EEE6; --muted:#8B93A8; --shadow:none;
-    --c-amber:#F2B705;  --c-amber-ink:#F2B705;
-    --c-teal:#3FA796;   --c-teal-ink:#3FA796;
-    --c-violet:#9B8CE0; --c-violet-ink:#9B8CE0;
-    --ok:#3FA796; --late:#E5533C; --on-fill:#0B0F17;
-  }
-  :root[data-theme="light"]{
-    --bg:#F3F4F8; --panel:#FFFFFF; --panel-2:#F5F6FA; --line:#E1E4EC;
-    --text:#141A2B; --muted:#5A6378;
-    --shadow:0 1px 2px rgba(20,26,43,.06), 0 8px 20px -10px rgba(20,26,43,.14);
-    --c-amber:#F2B705;  --c-amber-ink:#8A5F00;
-    --c-teal:#2E8B84;   --c-teal-ink:#1F6F69;
-    --c-violet:#8B7FD6; --c-violet-ink:#5B4DB5;
-    --ok:#1F7A6E; --late:#C73E2A; --on-fill:#141A2B;
-  }
-  *{ box-sizing:border-box; }
-  html,body{ margin:0; padding:0; }
-  body{
-    background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif;
-    min-height:100vh; -webkit-font-smoothing:antialiased;
-    transition:background .25s ease, color .25s ease;
-  }
-  .wrap{ max-width:1200px; margin:0 auto; padding:24px 20px 56px; }
-  button{ font-family:inherit; color:inherit; }
-  :focus-visible{ outline:2px solid var(--c-teal-ink); outline-offset:2px; border-radius:6px; }
-
-  /* ---------- Header ---------- */
-  header{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
-  .brand{ display:flex; align-items:center; gap:12px; }
-  .logo{ width:38px; height:38px; border-radius:10px; background:var(--c-amber); color:var(--on-fill);
-         display:grid; place-items:center; font-family:'Archivo',sans-serif; font-weight:800; font-size:18px; }
-  .brand h1{ font-family:'Archivo',sans-serif; font-weight:800; font-size:22px; margin:0; letter-spacing:-.01em; }
-  .brand p{ margin:2px 0 0; color:var(--muted); font-size:12.5px; }
-  .head-right{ display:flex; align-items:center; gap:14px; }
-  .live{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--muted); }
-  .live i{ width:8px; height:8px; border-radius:50%; background:var(--late); animation:pulse 1.6s infinite; }
-  @keyframes pulse{ 0%{ box-shadow:0 0 0 0 rgba(229,83,60,.5);} 70%{ box-shadow:0 0 0 7px rgba(229,83,60,0);} 100%{ box-shadow:0 0 0 0 rgba(229,83,60,0);} }
-  .clock{ text-align:right; }
-  .clock .time{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:22px; line-height:1; color:var(--c-amber-ink); font-variant-numeric:tabular-nums; }
-  .clock .date{ color:var(--muted); font-size:11.5px; margin-top:4px; }
-  .theme-btn{ width:40px; height:40px; border-radius:10px; border:1px solid var(--line); background:var(--panel);
-              display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow); }
-  .theme-btn:hover{ border-color:var(--muted); }
-  .theme-btn svg{ width:18px; height:18px; stroke:var(--text); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-  :root[data-theme="dark"] .ico-moon{ display:none; }
-  :root[data-theme="light"] .ico-sun{ display:none; }
-
-  /* ---------- Alert ---------- */
-  .alert{ display:none; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--late);
-          color:var(--text); border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:16px; box-shadow:var(--shadow); }
-  .alert.show{ display:flex; }
-  .alert b{ color:var(--late); }
-
-  /* ---------- Stats ---------- */
-  .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
-  @media (max-width:760px){ .stats{ grid-template-columns:repeat(2,1fr); } }
-  .stat{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); }
-  .stat .n{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:26px; font-variant-numeric:tabular-nums; line-height:1.1; }
-  .stat .l{ color:var(--muted); font-size:12px; margin-top:4px; }
-  .stat.good .n{ color:var(--ok); } .stat.bad .n{ color:var(--late); }
-
-  /* ---------- Tabs ---------- */
-  .tabs{ display:inline-flex; gap:6px; padding:5px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; margin-bottom:18px; flex-wrap:wrap; }
-  .tab{ border:1px solid transparent; background:transparent; padding:8px 14px; border-radius:8px; cursor:pointer;
-        font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; color:var(--muted); }
-  .tab .dot{ width:9px; height:9px; border-radius:50%; background:var(--route); }
-  .tab .code{ font-family:'IBM Plex Mono',monospace; }
-  .tab:hover{ color:var(--text); }
-  .tab.active{ background:var(--panel); color:var(--text); border-color:var(--line); box-shadow:var(--shadow); }
-
-  /* ---------- Layout ---------- */
-  .grid{ display:grid; grid-template-columns:1.15fr 1fr; gap:18px; align-items:start; }
-  @media (max-width:900px){ .grid{ grid-template-columns:1fr; } }
-  .col{ display:flex; flex-direction:column; gap:18px; }
-  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:var(--shadow); }
-  .panel h2{ font-family:'Archivo',sans-serif; font-size:16px; font-weight:700; margin:0 0 3px; }
-  .sub{ color:var(--muted); font-size:12.5px; margin:0 0 16px; }
-  .panel-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
-
-  /* ---------- Route line ---------- */
-  .route-line{ position:relative; padding-left:30px; --route:var(--c-amber); --route-ink:var(--c-amber-ink); }
-  .route-line .rail{ position:absolute; left:9px; width:2px; background:var(--line); border-radius:2px; }
-  .rail-fill{ position:absolute; left:9px; width:2px; background:var(--route); border-radius:2px; opacity:.55; }
-  .stop{ position:relative; padding:13px 0; }
-  .stop .dot{ position:absolute; left:-26px; top:50%; transform:translateY(-50%); width:12px; height:12px; border-radius:50%;
-              background:var(--panel); border:2px solid var(--route); z-index:1; }
-  .stop.terminal .dot{ border-style:dashed; }
-  .stop-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .stop-name{ font-weight:600; font-size:14px; display:flex; align-items:center; gap:6px; }
-  .stop-meta{ color:var(--muted); font-size:11.5px; margin-top:2px; }
-  .star{ border:none; background:none; cursor:pointer; padding:2px; line-height:0; border-radius:6px; }
-  .star svg{ width:16px; height:16px; stroke:var(--muted); fill:none; stroke-width:2; stroke-linejoin:round; }
-  .star.on svg{ fill:var(--c-amber); stroke:var(--c-amber-ink); }
-  .arrivals{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
-  .chip{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; padding:5px 8px; border-radius:7px;
-         background:var(--panel-2); border:1px solid var(--line); white-space:nowrap; display:flex; gap:6px; align-items:center; font-variant-numeric:tabular-nums; }
-  .chip .b{ color:var(--muted); font-weight:500; }
-  .chip.soon{ border-color:var(--route); color:var(--route-ink); }
-  .chip.late .t{ color:var(--late); }
-  .bus-marker{ position:absolute; left:-1px; width:22px; height:22px; border-radius:50%; background:var(--route); color:var(--on-fill);
-               display:grid; place-items:center; font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:700; z-index:2;
-               transform:translateY(-50%); transition:top 1s linear; box-shadow:0 0 0 3px var(--panel), 0 2px 8px rgba(0,0,0,.25); }
-  .bus-marker.late{ box-shadow:0 0 0 3px var(--panel), 0 0 0 5px var(--late); }
-  @media (prefers-reduced-motion:reduce){ .bus-marker{ transition:none; } .live i{ animation:none; } }
-
-  /* ---------- Forms ---------- */
-  .field{ margin-bottom:12px; }
-  .field label{ display:block; font-size:11.5px; color:var(--muted); margin-bottom:5px; font-weight:600; }
-  select{
-    width:100%; background-color:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:10px 34px 10px 12px;
-    border-radius:9px; font-size:13.5px; font-family:inherit; appearance:none; cursor:pointer;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238B93A8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 12px center;
-  }
-  .row2{ display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:end; }
-  .swap{ width:38px; height:38px; border-radius:9px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer; margin-bottom:12px; display:grid; place-items:center; }
-  .swap svg{ width:16px; height:16px; stroke:var(--text); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-  .btn{ width:100%; background:var(--c-amber); color:#141A2B; border:none; padding:11px 14px; border-radius:9px; font-weight:700; font-size:14px; cursor:pointer; font-family:'Archivo',sans-serif; }
-  .btn:hover{ filter:brightness(1.06); }
-
-  /* ---------- Plan result ---------- */
-  .result{ display:none; margin-top:16px; border-top:1px dashed var(--line); padding-top:14px; }
-  .result.show{ display:block; }
-  .hero{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
-  .hero .big{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:26px; color:var(--c-amber-ink); }
-  .hero .cap{ color:var(--muted); font-size:12px; }
-  .kv{ display:flex; justify-content:space-between; padding:5px 0; font-size:13px; }
-  .kv .k{ color:var(--muted); } .kv .v{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
-  .note{ color:var(--muted); font-size:11.5px; margin-top:8px; line-height:1.5; }
-  .pill{ display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:99px; border:1px solid currentColor; }
-  .pill.ok{ color:var(--ok); } .pill.late{ color:var(--late); } .pill.mid{ color:var(--c-amber-ink); }
-
-  /* ---------- Favourites ---------- */
-  .fav{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; }
-  .fav:last-child{ border-bottom:none; }
-  .fav .nm{ font-weight:600; } .fav .rt{ color:var(--muted); font-size:11.5px; }
-  .fav .eta{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
-  .empty{ color:var(--muted); font-size:12.5px; padding:6px 0; }
-
-  /* ---------- Fleet table ---------- */
-  .scroll{ overflow-x:auto; }
-  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
-  th{ text-align:left; font-size:11.5px; color:var(--muted); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--line); }
-  td{ padding:10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
-  tr.bus-row{ cursor:pointer; } tr.bus-row:hover td{ background:var(--panel-2); }
-  tr:last-child td{ border-bottom:none; }
-  .mono{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
-  .rtag{ display:inline-flex; align-items:center; gap:6px; font-weight:600; }
-  .rtag i{ width:8px; height:8px; border-radius:50%; background:var(--route); }
-  .bar{ width:90px; height:6px; border-radius:6px; background:var(--line); overflow:hidden; }
-  .bar b{ display:block; height:100%; background:var(--route); }
-
-  footer{ margin-top:26px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:11.5px; line-height:1.6; }
-  footer b{ color:var(--text); }
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+:root[data-theme="light"]{--bg:#EDF0F5;--card:#FFF;--soft:#F4F6FA;--line:#DDE2EB;--ink:#10172A;--mute:#5B6479;--sh:0 1px 2px rgba(16,23,42,.05),0 14px 30px -16px rgba(16,23,42,.22);--map:#E4E9F1;--amber:#F2B705;--amber-i:#86590A;--teal:#2E8B84;--teal-i:#1B6A64;--violet:#8B7FD6;--violet-i:#5646B0;--ok:#1B7A6D;--bad:#C0392B}
+:root[data-theme="dark"]{--bg:#080C16;--card:#10172A;--soft:#161F36;--line:#232E4B;--ink:#F0EEE8;--mute:#8E98B0;--sh:none;--map:#0C1222;--amber:#F2B705;--amber-i:#F2B705;--teal:#3FA796;--teal-i:#58C2B0;--violet:#9B8CE0;--violet-i:#B2A6F0;--ok:#4CC1AE;--bad:#EE6A55}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+button,select,input{font:inherit;color:inherit}:focus-visible{outline:2px solid var(--teal-i);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 22px 48px}
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;font:600 22px Fraunces,serif;letter-spacing:-.01em}
+.logo{width:34px;height:34px;border-radius:11px 11px 11px 3px;background:var(--amber);display:grid;place-items:center;color:#10172A;font-size:17px}
+.ctl{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:8px 12px;box-shadow:var(--sh)}
+.search{position:relative}.search input{border:0;background:none;outline:0;width:190px}
+.res{position:absolute;top:44px;left:0;width:290px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -12px rgba(0,0,0,.35);z-index:20;display:none;overflow:hidden}
+.res.on{display:block}.res div{padding:9px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}.res div:hover{background:var(--soft)}
+.clock{font:600 18px 'IBM Plex Mono',monospace;color:var(--amber-i);font-variant-numeric:tabular-nums}
+.ico{width:38px;height:38px;display:grid;place-items:center;cursor:pointer;padding:0}
+.ico svg{width:17px;height:17px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+[data-theme=dark] .moon,[data-theme=light] .sun{display:none}
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+.hero h1{font:500 clamp(28px,4vw,40px)/1.1 Fraunces,serif;margin:0;letter-spacing:-.02em}
+.hero p{margin:6px 0 0;color:var(--mute)}
+.kpis{display:flex;gap:26px}.kpi b{display:block;font:600 28px 'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--mute);font-size:12.5px}.kpi.g b{color:var(--ok)}.kpi.r b{color:var(--bad)}
+.alert{display:none;border:1px solid var(--bad);background:var(--card);border-radius:12px;padding:10px 14px;margin-bottom:16px}.alert.on{display:block}.alert b{color:var(--bad)}
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:start;margin-bottom:18px}
+.grid.b{grid-template-columns:1fr 1.25fr}
+@media(max-width:940px){.grid,.grid.b{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--sh)}
+.card.big{border-radius:24px;padding:0;overflow:hidden}
+h2{font:600 19px Fraunces,serif;margin:0 0 2px}.sub{color:var(--mute);font-size:12.5px;margin:0 0 14px}
+.col{display:flex;flex-direction:column;gap:18px}
+.tabs{display:flex;gap:6px;padding:14px 16px 0;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--soft);border-radius:99px;padding:7px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;font-weight:600;color:var(--mute)}
+.tab i{width:9px;height:9px;border-radius:50%;background:var(--c)}.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.rinfo{display:flex;gap:22px;flex-wrap:wrap;padding:12px 20px 16px;color:var(--mute);font-size:12.5px}.rinfo b{color:var(--ink);font-weight:600}
+svg#map{display:block;width:100%;background:var(--map)}
+.rg{--c:var(--amber);opacity:.28;transition:opacity .3s;cursor:pointer}.rg.on{opacity:1}
+.rp{fill:none;stroke:var(--c);stroke-width:5;stroke-linecap:round}
+.sd{fill:var(--card);stroke:var(--c);stroke-width:3}.lbl{display:none;font:600 11.5px Inter;fill:var(--ink);paint-order:stroke;stroke:var(--map);stroke-width:4px}.rg.on .lbl{display:block}
+.bus{transition:transform 1s linear}.bus circle{fill:var(--c);stroke:var(--card);stroke-width:3}.bus.late circle{stroke:var(--bad)}.bus text{font:700 9px 'IBM Plex Mono';fill:#10172A;text-anchor:middle}
+.stop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.stop:last-child{border:0}
+.stop strong{font-weight:600}.stop small{display:block;color:var(--mute);font-size:11.5px}
+.chips{display:flex;gap:6px}.chip{font:600 12px 'IBM Plex Mono',monospace;padding:5px 9px;border-radius:8px;background:var(--soft);font-variant-numeric:tabular-nums}.chip.n{background:var(--c);color:#10172A}.chip.l{outline:1.5px solid var(--bad)}
+.star{border:0;background:none;cursor:pointer;padding:0 6px 0 0;vertical-align:-3px}.star svg{width:16px;height:16px;stroke:var(--mute);fill:none;stroke-width:2;stroke-linejoin:round}.star.on svg{fill:var(--amber);stroke:var(--amber-i)}
+label{display:block;font-size:12px;color:var(--mute);font-weight:600;margin:0 0 5px}
+select{width:100%;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px;appearance:none;cursor:pointer}
+.two{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:end;margin-bottom:12px}.f{margin-bottom:12px}
+.swap{height:41px;border-radius:10px;border:1px solid var(--line);background:var(--soft);cursor:pointer}
+.go{width:100%;border:0;border-radius:11px;padding:12px;background:var(--amber);color:#10172A;font-weight:700;cursor:pointer}
+.res2{display:none;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}.res2.on{display:block}
+.big2{font:500 30px Fraunces,serif;color:var(--amber-i)}.kv{display:flex;justify-content:space-between;padding:4px 0}.kv span:first-child,.note{color:var(--mute)}.kv span+span{font:600 13px 'IBM Plex Mono',monospace}
+.note{font-size:12px;margin-top:6px}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;border:1px solid currentColor}.ok{color:var(--ok)}.bad{color:var(--bad)}.mid{color:var(--amber-i)}
+.fav{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}.fav:last-child{border:0}.fav small{color:var(--mute)}.mono{font:600 13px 'IBM Plex Mono',monospace}
+.empty{color:var(--mute)}
+.sc{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:620px}th{text-align:left;font-weight:500;color:var(--mute);padding:6px 8px;border-bottom:1px solid var(--line)}td{padding:9px 8px;border-bottom:1px solid var(--line)}tr.r{cursor:pointer}tr.r:hover td{background:var(--soft)}tr:last-child td{border:0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:7px}
+.bar2{width:80px;height:6px;border-radius:6px;background:var(--line);overflow:hidden}.bar2 b{display:block;height:100%;background:var(--c)}
+#toasts{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:30}
+.toast{background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:300px}
+footer{margin-top:22px;color:var(--mute);font-size:12px}
+@media(prefers-reduced-motion:reduce){.bus{transition:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
-
-  <header>
-    <div class="brand">
-      <div class="logo">T</div>
-      <div>
-        <h1>TransitBoard <span style="font-weight:600;color:var(--muted);font-size:14px">v2</span></h1>
-        <p>Smart bus tracking prototype · simulated campus &amp; city network</p>
-      </div>
-    </div>
-    <div class="head-right">
-      <div class="live"><i></i>LIVE · simulated</div>
-      <div class="clock"><div class="time" id="clockTime">--:--:--</div><div class="date" id="clockDate">—</div></div>
-      <button class="theme-btn" id="themeBtn" aria-label="Switch between light and dark theme" title="Toggle theme">
-        <svg class="ico-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-        <svg class="ico-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-      </button>
-    </div>
-  </header>
-
-  <div class="alert" id="alert" role="status"></div>
-
-  <section class="stats" aria-label="Network summary">
-    <div class="stat"><div class="n" id="stTotal">0</div><div class="l">Buses in service</div></div>
-    <div class="stat good"><div class="n" id="stOk">0</div><div class="l">Running on time</div></div>
-    <div class="stat bad"><div class="n" id="stLate">0</div><div class="l">Delayed</div></div>
-    <div class="stat"><div class="n" id="stAvg">0.0</div><div class="l">Avg delay (min)</div></div>
-  </section>
-
-  <div class="tabs" id="routeTabs" role="tablist" aria-label="Bus routes"></div>
-
-  <div class="grid">
-    <div class="panel">
-      <div class="panel-head">
-        <div><h2 id="routeTitle">Route</h2><p class="sub" id="routeSub"></p></div>
-      </div>
-      <div class="route-line" id="routeLine"></div>
-    </div>
-
-    <div class="col">
-      <div class="panel">
-        <h2>Plan a trip</h2>
-        <p class="sub">Pick stops and your walking time — we find a bus you can actually catch.</p>
-        <div class="field"><label for="planRoute">Route</label><select id="planRoute"></select></div>
-        <div class="row2">
-          <div class="field"><label for="planFrom">Board at</label><select id="planFrom"></select></div>
-          <button class="swap" id="swapBtn" aria-label="Swap boarding and destination stops" title="Swap">
-            <svg viewBox="0 0 24 24"><path d="M7 4v14M3 14l4 4 4-4M17 20V6M13 10l4-4 4 4"/></svg>
-          </button>
-          <div class="field"><label for="planTo">Get off at</label><select id="planTo"></select></div>
-        </div>
-        <div class="field">
-          <label for="planWalk">Walking time to boarding stop</label>
-          <select id="planWalk">
-            <option value="0">I'm at the stop</option>
-            <option value="2">2 min</option>
-            <option value="5">5 min</option>
-            <option value="10">10 min</option>
-          </select>
-        </div>
-        <button class="btn" id="planBtn">Plan my trip</button>
-        <div class="result" id="planResult" aria-live="polite"></div>
-      </div>
-
-      <div class="panel">
-        <h2>My stops</h2>
-        <p class="sub">Tap the star on any stop to pin it here.</p>
-        <div id="favList"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" style="margin-top:18px">
-    <h2>Live fleet</h2>
-    <p class="sub">Every bus currently in service across all routes. Click a row to open its route.</p>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>Bus</th><th>Route</th><th>Next stop</th><th>Arrives</th><th>Lap progress</th><th>Status</th><th>Load</th></tr></thead>
-        <tbody id="fleetBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <footer>
-    <b>Prototype notice —</b> Project Better Tomorrow · Review 2 build. Bus positions, delays and crowding levels are generated by a deterministic time-based simulation (not live GPS), reproducing the logic a real tracking feed would drive. Preferences (theme, pinned stops, last route) are stored only in this browser.
-  </footer>
+<div class="bar">
+  <div class="brand"><div class="logo">T</div>TransitBoard</div>
+  <div class="ctl search"><input id="q" placeholder="Search a stop" aria-label="Search a stop" autocomplete="off"><div class="res" id="res"></div></div>
+  <label class="ctl" style="margin:0;display:flex;align-items:center;gap:8px">Time speed
+    <select id="spd" style="width:auto;padding:2px 22px 2px 6px;border:0"><option value="1">Real time</option><option value="10">10x</option><option value="60">60x</option></select></label>
+  <div class="ctl clock" id="clock">--:--:--</div>
+  <button class="ctl ico" id="theme" aria-label="Switch theme"><svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
 </div>
-
+<div class="hero">
+  <div><h1 id="hi">Hello</h1><p id="hisub"></p></div>
+  <div class="kpis"><div class="kpi"><b id="k1">0</b><span>buses running</span></div><div class="kpi g"><b id="k2">0</b><span>on time</span></div><div class="kpi r"><b id="k3">0</b><span>delayed</span></div></div>
+</div>
+<div class="alert" id="alert" role="status"></div>
+<div class="grid">
+  <div class="card big">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="rinfo" id="rinfo"></div>
+    <svg id="map" viewBox="0 0 600 370" role="img" aria-label="Network map with live buses"></svg>
+  </div>
+  <div class="col">
+    <div class="card">
+      <h2>Plan a trip</h2><p class="sub">We only suggest buses you can still reach on foot.</p>
+      <div class="f"><label for="pr">Route</label><select id="pr"></select></div>
+      <div class="two"><div><label for="pf">Board at</label><select id="pf"></select></div>
+        <button class="swap" id="sw" aria-label="Swap stops">&#8645;</button>
+        <div><label for="pt">Get off at</label><select id="pt"></select></div></div>
+      <div class="f"><label for="pw">Walking time to the stop</label><select id="pw"><option value="0">I am at the stop</option><option value="2">2 min</option><option value="5">5 min</option><option value="10">10 min</option></select></div>
+      <button class="go" id="go">Plan my trip</button>
+      <div class="res2" id="plan" aria-live="polite"></div>
+    </div>
+    <div class="card"><h2>My stops</h2><p class="sub">Star a stop to pin it. You get an alert when a bus is two minutes away.</p><div id="favs"></div></div>
+  </div>
+</div>
+<div class="grid b">
+  <div class="card"><h2 id="st">Stops</h2><p class="sub">Next two buses at every stop on this route.</p><div id="stops"></div></div>
+  <div class="card"><h2>Live fleet</h2><p class="sub">Every bus in service. Select a row to open its route.</p>
+    <div class="sc"><table><thead><tr><th>Bus</th><th>Next stop</th><th>Arrives</th><th>Lap</th><th>Status</th><th>Seats</th></tr></thead><tbody id="fleet"></tbody></table></div></div>
+</div>
+<footer>Prototype built for Project Better Tomorrow. Positions, delays and crowding come from our own time-based simulation, not live GPS. Preferences stay in this browser.</footer>
+</div>
+<div id="toasts"></div>
 <script>
-/* =====================================================================
-   ENGINE — pure functions, no DOM. (Unit-tested separately.)
-   ===================================================================== */
-const ROUTES = [
-  { id:'R7',  name:'Campus Loop',        color:'amber',  period:18*60, buses:3, lengthKm:5.4,  seed:0.4,
-    stops:[ {name:'Main Gate',pos:0},{name:'Library Circle',pos:.16},{name:'Hostel Block C',pos:.34},
-            {name:'Sports Complex',pos:.52},{name:'Food Court',pos:.70},{name:'Admin Building',pos:.88} ] },
-  { id:'R12', name:'Highway Express',    color:'teal',   period:40*60, buses:2, lengthKm:28.0, seed:1.7,
-    stops:[ {name:'City Junction',pos:0},{name:'Toll Plaza',pos:.18},{name:'Tech Park',pos:.40},
-            {name:'Riverside',pos:.58},{name:'Central Mall',pos:.78},{name:'Railway Station',pos:.94} ] },
-  { id:'R4',  name:'Old Town Connector', color:'violet', period:26*60, buses:2, lengthKm:9.6,  seed:2.9,
-    stops:[ {name:'Clock Tower',pos:0},{name:'Market Street',pos:.20},{name:'Old Bridge',pos:.42},
-            {name:'Hospital',pos:.62},{name:'Stadium',pos:.80},{name:'Bus Depot',pos:.95} ] }
-];
-const OCC_LABELS = ['Low','Medium','High'];
-
-function headway(r){ return r.period / r.buses; }
-function fraction(r, i, t){ return ((t + i*headway(r)) % r.period) / r.period; }
-function delaySec(r, i, t){ return Math.round(Math.max(0, Math.sin(t/900 + r.seed*7 + i*1.9)) * 240 / 10) * 10; }
-function occupancy(r, i, t){
-  /* two blended waves give a smoother Low / Medium / High mix than a single sine */
-  const v = (Math.sin(t/1500 + r.seed*5 + i*1.3) + Math.sin(t/640 + r.seed*3 + i*2.2) + 2) / 4;
-  return v < .38 ? 0 : v < .64 ? 1 : 2;
-}
-function etaSec(r, i, t, stopPos){
-  let d = stopPos - fraction(r,i,t); if (d < 0) d += 1;
-  return d * r.period + delaySec(r,i,t);
-}
-function rideSec(r, fromPos, toPos){ let d = toPos - fromPos; if (d < 0) d += 1; return d * r.period; }
-function statusOf(delay){ return delay < 60 ? {text:'On time', cls:'ok'} : {text:'Delayed +'+Math.round(delay/60)+' min', cls:'late'}; }
-function busInfo(r, i, t){
-  const f = fraction(r,i,t), delay = delaySec(r,i,t);
-  let nextIdx = 0, best = Infinity;
-  r.stops.forEach((s,k)=>{ let d = s.pos - f; if (d < 0) d += 1; if (d < best){ best = d; nextIdx = k; } });
-  return { idx:i, label:'B'+(i+1), f, delay, status:statusOf(delay), occ:occupancy(r,i,t),
-           nextIdx, nextEta: best*r.period + delay };
-}
-/* Trip planning: choose buses reachable after walking, soonest first. */
-function planTrip(r, fromIdx, toIdx, walkMin, t){
-  const from = r.stops[fromIdx], to = r.stops[toIdx];
-  const walkSec = walkMin * 60;
-  const all = [];
-  for (let i=0;i<r.buses;i++) all.push({ bus:busInfo(r,i,t), wait:etaSec(r,i,t,from.pos) });
-  all.sort((a,b)=>a.wait-b.wait);
-  let catchable = all.filter(c => c.wait >= walkSec);
-  if (!catchable.length) catchable = [all[all.length-1]];
-  const ride = rideSec(r, from.pos, to.pos);
-  return catchable.slice(0,2).map(c => ({ bus:c.bus, wait:c.wait, leaveIn:c.wait - walkSec, ride, total:c.wait + ride }));
-}
-
-/* =====================================================================
-   UI
-   ===================================================================== */
-const $ = (s, el=document) => el.querySelector(s);
-let activeId = ROUTES[0].id;
-let planActive = false;
-let favs = new Set();
-let layoutCache = null;
-const markers = [];
-const lastFrac = {};
-
-/* ---- storage (guarded) ---- */
-function store(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
-function load(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
-
-/* ---- helpers ---- */
-const route = () => ROUTES.find(r => r.id === activeId);
-const byId = id => ROUTES.find(r => r.id === id);
-const pad = n => String(n).padStart(2,'0');
-function fmtTime(d){ return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
-function fmtHM(d){ return pad(d.getHours())+':'+pad(d.getMinutes()); }
-function fmtMin(sec){ const m = Math.round(sec/60); return sec < 30 ? 'Arriving' : (m < 1 ? '<1 min' : m+' min'); }
-function colorVars(r){ return '--route:var(--c-'+r.color+');--route-ink:var(--c-'+r.color+'-ink)'; }
-const STAR = '<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
-
-/* ---- theme ---- */
-function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); store('tb-theme', t); }
-(function initTheme(){
-  const saved = load('tb-theme');
-  const prefLight = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches;
-  applyTheme(saved || (prefLight ? 'light' : 'dark'));
-})();
-$('#themeBtn').addEventListener('click', () => {
-  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-});
-
-/* ---- favourites ---- */
-try{ favs = new Set(JSON.parse(load('tb-favs') || '[]')); }catch(e){ favs = new Set(); }
-const favKey = (r, s) => r.id + '|' + s.name;
-function toggleFav(key){ favs.has(key) ? favs.delete(key) : favs.add(key); store('tb-favs', JSON.stringify([...favs])); updateAll(); }
-
-/* ---- tabs ---- */
-function renderTabs(){
-  const el = $('#routeTabs'); el.innerHTML = '';
-  ROUTES.forEach(r => {
-    const b = document.createElement('button');
-    b.className = 'tab' + (r.id === activeId ? ' active' : '');
-    b.setAttribute('role','tab'); b.setAttribute('aria-selected', r.id === activeId);
-    b.style.cssText = colorVars(r);
-    b.innerHTML = '<span class="dot"></span><span class="code">'+r.id+'</span> '+r.name;
-    b.onclick = () => selectRoute(r.id);
-    el.appendChild(b);
-  });
-}
-function selectRoute(id){
-  activeId = id; store('tb-route', id);
-  renderTabs(); buildRoute(); syncPlanRoute(); updateAll();
-}
-
-/* ---- route panel (built once per route, updated each tick) ---- */
-function buildRoute(){
-  const r = route();
-  $('#routeTitle').textContent = r.id + ' · ' + r.name;
-  $('#routeSub').textContent = r.buses + ' buses · ' + r.lengthKm + ' km loop · ' + Math.round(r.period/60) + ' min per lap';
-  const line = $('#routeLine'); line.style.cssText = colorVars(r); line.innerHTML = '';
-  line.insertAdjacentHTML('beforeend', '<div class="rail"></div><div class="rail-fill"></div>');
-  r.stops.forEach((s,k) => {
-    const row = document.createElement('div'); row.className = 'stop'; row.dataset.k = k;
-    row.innerHTML =
-      '<span class="dot"></span><div class="stop-row"><div>' +
-      '<div class="stop-name">'+s.name+'<button class="star" data-fav="'+favKey(r,s)+'" aria-label="Pin '+s.name+'">'+STAR+'</button></div>' +
-      '<div class="stop-meta">'+(s.pos*r.lengthKm).toFixed(1)+' km from start</div></div>' +
-      '<div class="arrivals" data-arr="'+k+'"></div></div>';
-    line.appendChild(row);
-  });
-  const end = document.createElement('div'); end.className = 'stop terminal';
-  end.innerHTML = '<span class="dot"></span><div class="stop-row"><div><div class="stop-name" style="color:var(--muted);font-weight:500">↺ Loops back to '+r.stops[0].name+'</div></div></div>';
-  line.appendChild(end);
-  line.querySelectorAll('.star').forEach(b => b.onclick = () => toggleFav(b.dataset.fav));
-  markers.length = 0;
-  for (let i=0;i<r.buses;i++){
-    const m = document.createElement('div'); m.className = 'bus-marker'; m.textContent = 'B'+(i+1);
-    line.appendChild(m); markers.push(m);
-  }
-  layoutCache = null;
-}
-function measure(){
-  const line = $('#routeLine'); const rows = [...line.querySelectorAll('.stop')];
-  const ys = rows.map(rw => rw.offsetTop + rw.offsetHeight/2);
-  layoutCache = { ys, key: ys.join(',') };
-  const rail = $('.rail', line), fill = $('.rail-fill', line);
-  rail.style.top = ys[0] + 'px'; rail.style.height = (ys[ys.length-1]-ys[0]) + 'px';
-  fill.style.top = ys[0] + 'px';
-}
-function busY(r, f){
-  const P = r.stops.map(s => s.pos).concat(1), Y = layoutCache.ys;
-  let k = 0; while (k < P.length-2 && f >= P[k+1]) k++;
-  const t = (f - P[k]) / (P[k+1] - P[k]);
-  return Y[k] + t * (Y[k+1] - Y[k]);
-}
-
-/* ---- per-second update ---- */
-function updateRoute(t){
-  const r = route();
-  const ys = [...document.querySelectorAll('#routeLine .stop')].map(rw => rw.offsetTop + rw.offsetHeight/2).join(',');
-  if (!layoutCache || layoutCache.key !== ys) measure();
-  r.stops.forEach((s,k) => {
-    const etas = [];
-    for (let i=0;i<r.buses;i++) etas.push({ b:'B'+(i+1), sec:etaSec(r,i,t,s.pos), late:delaySec(r,i,t) >= 60 });
-    etas.sort((a,b)=>a.sec-b.sec);
-    $('[data-arr="'+k+'"]').innerHTML = etas.slice(0,2).map((e,n) =>
-      '<span class="chip'+(n===0?' soon':'')+(e.late?' late':'')+'"><span class="b">'+e.b+'</span><span class="t">'+fmtMin(e.sec)+'</span></span>').join('');
-  });
-  document.querySelectorAll('#routeLine .star').forEach(b => b.classList.toggle('on', favs.has(b.dataset.fav)));
-  for (let i=0;i<r.buses;i++){
-    const m = markers[i], f = fraction(r,i,t), y = busY(r,f), key = r.id+i;
-    const wrapped = lastFrac[key] !== undefined && f < lastFrac[key] - .5;
-    if (wrapped){ m.style.transition = 'none'; }
-    m.style.top = y + 'px';
-    if (wrapped){ void m.offsetHeight; m.style.transition = ''; }
-    lastFrac[key] = f;
-    m.classList.toggle('late', delaySec(r,i,t) >= 60);
-    m.title = 'Bus '+(i+1)+' · '+statusOf(delaySec(r,i,t)).text;
-  }
-  const fill = $('#routeLine .rail-fill'), lead = Math.max(...markers.map((_,i)=>busY(r,fraction(r,i,t))));
-  fill.style.height = Math.max(0, lead - layoutCache.ys[0]) + 'px';
-}
-function updateFleet(t){
-  const rows = [], agg = { total:0, ok:0, late:0, sum:0 };
-  ROUTES.forEach(r => { for (let i=0;i<r.buses;i++){
-    const b = busInfo(r,i,t); agg.total++; agg.sum += b.delay; b.status.cls==='ok' ? agg.ok++ : agg.late++;
-    rows.push(
-      '<tr class="bus-row" data-r="'+r.id+'" style="'+colorVars(r)+'"><td class="mono">'+r.id+'-'+b.label+'</td>' +
-      '<td><span class="rtag"><i></i>'+r.name+'</span></td><td>'+r.stops[b.nextIdx].name+'</td>' +
-      '<td class="mono">'+fmtMin(b.nextEta)+'</td><td><div class="bar"><b style="width:'+(b.f*100).toFixed(0)+'%"></b></div></td>' +
-      '<td><span class="pill '+b.status.cls+'">'+b.status.text+'</span></td>' +
-      '<td><span class="pill '+(b.occ===0?'ok':b.occ===1?'mid':'late')+'">'+OCC_LABELS[b.occ]+'</span></td></tr>');
-  }});
-  $('#fleetBody').innerHTML = rows.join('');
-  document.querySelectorAll('.bus-row').forEach(tr => tr.onclick = () => selectRoute(tr.dataset.r));
-  $('#stTotal').textContent = agg.total; $('#stOk').textContent = agg.ok; $('#stLate').textContent = agg.late;
-  $('#stAvg').textContent = (agg.sum/agg.total/60).toFixed(1);
-  /* dynamic alert: worst delayed bus */
-  let worst = null;
-  ROUTES.forEach(r => { for (let i=0;i<r.buses;i++){ const d = delaySec(r,i,t); if (d >= 150 && (!worst || d > worst.d)) worst = { r, i, d }; } });
-  const al = $('#alert');
-  if (worst){ al.innerHTML = '<b>Service notice</b> — '+worst.r.id+' '+worst.r.name+' · Bus '+(worst.i+1)+' is running about '+Math.round(worst.d/60)+' min behind schedule.'; al.classList.add('show'); }
-  else al.classList.remove('show');
-}
-function updateFavs(t){
-  const items = [];
-  favs.forEach(key => {
-    const [rid, name] = key.split('|'); const r = byId(rid); if (!r) return;
-    const s = r.stops.find(x => x.name === name); if (!s) return;
-    let best = Infinity, who = '';
-    for (let i=0;i<r.buses;i++){ const e = etaSec(r,i,t,s.pos); if (e < best){ best = e; who = 'B'+(i+1); } }
-    items.push({ r, s, best, who, key });
-  });
-  items.sort((a,b)=>a.best-b.best);
-  $('#favList').innerHTML = items.length ? items.map(it =>
-    '<div class="fav" style="'+colorVars(it.r)+'"><div><div class="nm">'+it.s.name+'</div><div class="rt">'+it.r.id+' · '+it.r.name+'</div></div>' +
-    '<div style="display:flex;align-items:center;gap:10px"><span class="eta">'+it.who+' · '+fmtMin(it.best)+'</span>' +
-    '<button class="star on" data-fav="'+it.key+'" aria-label="Unpin '+it.s.name+'">'+STAR+'</button></div></div>').join('')
-    : '<div class="empty">No pinned stops yet.</div>';
-  document.querySelectorAll('#favList .star').forEach(b => b.onclick = () => toggleFav(b.dataset.fav));
-}
-
-/* ---- trip planner ---- */
-function syncPlanRoute(){
-  const sel = $('#planRoute');
-  if (!sel.options.length) ROUTES.forEach(r => sel.add(new Option(r.id+' · '+r.name, r.id)));
-  sel.value = activeId; fillStops();
-}
-function fillStops(){
-  const r = byId($('#planRoute').value), f = $('#planFrom'), t = $('#planTo');
-  f.innerHTML = ''; t.innerHTML = '';
-  r.stops.forEach((s,i) => { f.add(new Option(s.name, i)); t.add(new Option(s.name, i)); });
-  t.selectedIndex = r.stops.length - 1;
-}
-function renderPlan(t){
-  const box = $('#planResult'); if (!planActive){ box.classList.remove('show'); return; }
-  const r = byId($('#planRoute').value), a = +$('#planFrom').value, b = +$('#planTo').value, walk = +$('#planWalk').value;
-  box.classList.add('show');
-  if (a === b){ box.innerHTML = '<div class="empty">Choose two different stops to plan a trip.</div>'; return; }
-  const opts = planTrip(r, a, b, walk, t), best = opts[0], alt = opts[1];
-  const arrive = new Date(Date.now() + best.total*1000);
-  const leave = best.leaveIn < 20 ? 'Leave now' : 'Leave in ' + fmtMin(best.leaveIn);
-  box.innerHTML =
-    '<div class="hero"><span class="big">'+leave+'</span><span class="pill '+best.bus.status.cls+'">'+best.bus.status.text+'</span></div>' +
-    '<div class="cap" style="color:var(--muted);font-size:12px;margin-bottom:8px">Catch '+r.id+'-'+best.bus.label+' at '+r.stops[a].name+' · crowding: '+OCC_LABELS[best.bus.occ]+'</div>' +
-    '<div class="kv"><span class="k">Bus reaches your stop in</span><span class="v">'+fmtMin(best.wait)+'</span></div>' +
-    '<div class="kv"><span class="k">Ride duration</span><span class="v">'+Math.round(best.ride/60)+' min</span></div>' +
-    '<div class="kv"><span class="k">Arrive at '+r.stops[b].name+'</span><span class="v" style="color:var(--c-amber-ink)">'+fmtHM(arrive)+'</span></div>' +
-    (alt ? '<div class="note">Missed it? Next option: '+r.id+'-'+alt.bus.label+', arriving at '+fmtHM(new Date(Date.now()+alt.total*1000))+'.</div>' : '') +
-    '<div class="note">Delays and walking time are included in the estimate.</div>';
-}
-$('#planBtn').onclick = () => { planActive = true; renderPlan(Date.now()/1000); };
-$('#planRoute').onchange = () => { fillStops(); renderPlan(Date.now()/1000); };
-['#planFrom','#planTo','#planWalk'].forEach(id => $(id).onchange = () => renderPlan(Date.now()/1000));
-$('#swapBtn').onclick = () => { const f=$('#planFrom'), t=$('#planTo'), x=f.value; f.value=t.value; t.value=x; renderPlan(Date.now()/1000); };
-
-/* ---- main loop ---- */
-function updateAll(){
-  const t = Date.now()/1000, d = new Date();
-  $('#clockTime').textContent = fmtTime(d);
-  $('#clockDate').textContent = d.toLocaleDateString([], { weekday:'long', month:'long', day:'numeric' });
-  updateRoute(t); updateFleet(t); updateFavs(t); renderPlan(t);
-}
-(function boot(){
-  const saved = load('tb-route'); if (saved && byId(saved)) activeId = saved;
-  renderTabs(); buildRoute(); syncPlanRoute(); updateAll();
-  setInterval(updateAll, 1000);
-  window.addEventListener('resize', () => { layoutCache = null; });
-})();
+/* ===== ENGINE (pure, no DOM) ===== */
+const ROUTES=[
+{id:'R7',name:'Campus Loop',color:'amber',period:1080,buses:3,km:5.4,seed:.4,rate:1.5,path:'M90 250C60 160 140 90 220 110C300 130 310 220 250 270C200 310 110 320 90 250Z',
+ stops:[['Main Gate',0],['Library Circle',.16],['Hostel Block C',.34],['Sports Complex',.52],['Food Court',.7],['Admin Building',.88]]},
+{id:'R12',name:'Highway Express',color:'teal',period:2400,buses:2,km:28,seed:1.7,rate:2.2,path:'M150 60C300 20 470 40 540 120C590 200 520 300 400 330C300 350 200 300 160 210C130 150 120 90 150 60Z',
+ stops:[['City Junction',0],['Toll Plaza',.18],['Tech Park',.4],['Riverside',.58],['Central Mall',.78],['Railway Station',.94]]},
+{id:'R4',name:'Old Town Connector',color:'violet',period:1560,buses:2,km:9.6,seed:2.9,rate:1.8,path:'M330 200C380 150 460 160 480 220C495 270 430 310 370 290C320 275 300 230 330 200Z',
+ stops:[['Clock Tower',0],['Market Street',.2],['Old Bridge',.42],['Hospital',.62],['Stadium',.8],['Bus Depot',.95]]}];
+ROUTES.forEach(r=>r.stops=r.stops.map(([name,pos])=>({name,pos})));
+const SEATS=['Many seats','Some seats','Standing only'];
+const hw=r=>r.period/r.buses;
+const frac=(r,i,t)=>((t+i*hw(r))%r.period)/r.period;
+const delay=(r,i,t)=>Math.round(Math.max(0,Math.sin(t/900+r.seed*7+i*1.9))*24)*10;
+const occ=(r,i,t)=>{const v=(Math.sin(t/1500+r.seed*5+i*1.3)+Math.sin(t/640+r.seed*3+i*2.2)+2)/4;return v<.38?0:v<.64?1:2};
+const eta=(r,i,t,p)=>{let d=p-frac(r,i,t);if(d<0)d+=1;return d*r.period+delay(r,i,t)};
+const ride=(r,a,b)=>{let d=b-a;if(d<0)d+=1;return d};
+const status=d=>d<60?{t:'On time',c:'ok'}:{t:'Late +'+Math.round(d/60)+' min',c:'bad'};
+const fare=(r,share)=>Math.max(5,Math.round(5+share*r.km*r.rate));
+function info(r,i,t){const f=frac(r,i,t),d=delay(r,i,t);let k=0,b=9;r.stops.forEach((s,n)=>{let x=s.pos-f;if(x<0)x+=1;if(x<b){b=x;k=n}});return{i,l:'B'+(i+1),f,d,s:status(d),o:occ(r,i,t),k,e:b*r.period+d}}
+function plan(r,a,b,walk,t){const A=r.stops[a],all=[];for(let i=0;i<r.buses;i++)all.push({b:info(r,i,t),w:eta(r,i,t,A.pos)});
+ all.sort((x,y)=>x.w-y.w);let c=all.filter(x=>x.w>=walk*60);if(!c.length)c=[all[all.length-1]];
+ const sh=ride(r,A.pos,r.stops[b].pos),rd=sh*r.period;return c.slice(0,2).map(x=>({b:x.b,w:x.w,leave:x.w-walk*60,rd,tot:x.w+rd,fare:fare(r,sh),km:sh*r.km}))}
+/* ===== UI ===== */
+const $=(s,e=document)=>e.querySelector(s),$$=(s,e=document)=>[...e.querySelectorAll(s)];
+const ns=(t,a)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const k in a)e.setAttribute(k,a[k]);return e};
+const sv=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},ld=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+let spd=1,t0=Date.now()/1e3,a0=t0,active='R7',planOn=false,favs=new Set(),alerted=new Set();
+const vt=()=>a0+(Date.now()/1e3-t0)*spd;
+const byId=id=>ROUTES.find(r=>r.id===id),cur=()=>byId(active),pad=n=>String(n).padStart(2,'0');
+const hm=s=>{const d=new Date(s*1e3);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const mins=s=>s<30?'Arriving':Math.max(1,Math.round(s/60))+' min';
+const cv=r=>`--c:var(--${r.color})`;
+const STAR='<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
+function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;$('#toasts').append(e);setTimeout(()=>e.remove(),5000)}
+/* theme */
+const setTheme=t=>{document.documentElement.dataset.theme=t;sv('tb-theme',t)};
+setTheme(ld('tb-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+$('#theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+$('#spd').onchange=e=>{a0=vt();t0=Date.now()/1e3;spd=+e.target.value;toast(spd===1?'Back to real time':'Simulation running at '+spd+'x')};
+try{favs=new Set(JSON.parse(ld('tb-favs')||'[]'))}catch(e){}
+const fk=(r,s)=>r.id+'|'+s.name,tog=k=>{favs.has(k)?favs.delete(k):favs.add(k);sv('tb-favs',JSON.stringify([...favs]));tick()};
+/* map */
+function buildMap(){const m=$('#map');m.innerHTML='';
+ ROUTES.forEach(r=>{const g=ns('g',{class:'rg',id:'g-'+r.id,style:cv(r)}),p=ns('path',{d:r.path,class:'rp'});g.append(p);m.append(g);r.L=p.getTotalLength();r.el=p;
+  g.onclick=()=>pick(r.id);
+  r.stops.forEach(s=>{const q=p.getPointAtLength(s.pos*r.L);g.append(ns('circle',{cx:q.x,cy:q.y,r:5.5,class:'sd'}));
+   const t=ns('text',{x:q.x+9,y:q.y+4,class:'lbl'});t.textContent=s.name;g.append(t)});
+  r.bus=[];for(let i=0;i<r.buses;i++){const b=ns('g',{class:'bus'});b.append(ns('circle',{r:11}));const t=ns('text',{y:3});t.textContent='B'+(i+1);b.append(t);g.append(b);r.bus.push(b)}})}
+function pick(id){active=id;sv('tb-route',id);head();$('#pr').value=id;fillStops();tick()}
+function head(){const r=cur();$$('.rg').forEach(g=>g.classList.toggle('on',g.id==='g-'+r.id));
+ $('#tabs').innerHTML='';ROUTES.forEach(x=>{const b=document.createElement('button');b.className='tab'+(x.id===active?' on':'');b.style.cssText=cv(x);b.innerHTML=`<i></i>${x.id} ${x.name}`;b.onclick=()=>pick(x.id);$('#tabs').append(b)});
+ $('#rinfo').innerHTML=`<span><b>${r.buses}</b> buses</span><span><b>${r.km} km</b> loop</span><span>a bus every <b>${Math.round(hw(r)/60)} min</b></span><span>fare from <b>&#8377;${fare(r,.1)}</b></span>`;
+ $('#st').textContent=r.name;
+ $('#stops').innerHTML='';r.stops.forEach((s,k)=>{const d=document.createElement('div');d.className='stop';d.style.cssText=cv(r);d.innerHTML=`<div><strong><button class="star" data-k="${fk(r,s)}" aria-label="Pin ${s.name}">${STAR}</button>${s.name}</strong><small>${(s.pos*r.km).toFixed(1)} km from start</small></div><div class="chips" id="c${k}"></div>`;$('#stops').append(d)});
+ $$('#stops .star').forEach(b=>b.onclick=()=>tog(b.dataset.k))}
+/* planner */
+function fillStops(){const r=byId($('#pr').value);['#pf','#pt'].forEach(s=>{$(s).innerHTML='';r.stops.forEach((x,i)=>$(s).add(new Option(x.name,i)))});$('#pt').selectedIndex=r.stops.length-1}
+function drawPlan(t){const o=$('#plan');o.classList.toggle('on',planOn);if(!planOn)return;
+ const r=byId($('#pr').value),a=+$('#pf').value,b=+$('#pt').value;
+ if(a===b){o.innerHTML='<div class="empty">Choose two different stops.</div>';return}
+ const [x,y]=plan(r,a,b,+$('#pw').value,t);
+ o.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="big2">${x.leave<20?'Leave now':'Leave in '+mins(x.leave)}</span><span class="pill ${x.b.s.c}">${x.b.s.t}</span></div>
+ <div class="note" style="margin:0 0 8px">Catch ${r.id}-${x.b.l} at ${r.stops[a].name}. ${SEATS[x.b.o]}.</div>
+ <div class="kv"><span>Bus reaches your stop in</span><span>${mins(x.w)}</span></div>
+ <div class="kv"><span>Ride (${x.km.toFixed(1)} km)</span><span>${Math.round(x.rd/60)} min</span></div>
+ <div class="kv"><span>Arrive at ${r.stops[b].name}</span><span style="color:var(--amber-i)">${hm(t+x.tot)}</span></div>
+ <div class="kv"><span>Estimated fare</span><span>&#8377;${x.fare}</span></div>
+ ${y?`<div class="note">Missed it? Next is ${r.id}-${y.b.l}, arriving ${hm(t+y.tot)}.</div>`:''}`}
+$('#go').onclick=()=>{planOn=true;drawPlan(vt())};$('#pr').onchange=()=>{fillStops();drawPlan(vt())};
+['#pf','#pt','#pw'].forEach(s=>$(s).onchange=()=>drawPlan(vt()));
+$('#sw').onclick=()=>{const v=$('#pf').value;$('#pf').value=$('#pt').value;$('#pt').value=v;drawPlan(vt())};
+/* search */
+$('#q').oninput=e=>{const v=e.target.value.trim().toLowerCase(),o=$('#res');o.innerHTML='';if(!v){o.classList.remove('on');return}
+ const t=vt();ROUTES.forEach(r=>r.stops.forEach(s=>{if(s.name.toLowerCase().includes(v)){let b=9e9;for(let i=0;i<r.buses;i++)b=Math.min(b,eta(r,i,t,s.pos));
+  const d=document.createElement('div');d.innerHTML=`<span>${s.name}</span><span class="mono">${r.id} &middot; ${mins(b)}</span>`;d.onclick=()=>{pick(r.id);o.classList.remove('on');$('#q').value=''};o.append(d)}}));
+ if(!o.children.length)o.innerHTML='<div class="empty">No stop matches that name.</div>';o.classList.add('on')};
+document.addEventListener('click',e=>{if(!e.target.closest('.search'))$('#res').classList.remove('on')});
+/* tick */
+function tick(){const t=vt(),r=cur(),d=new Date(t*1e3),h=d.getHours();
+ $('#clock').textContent=`${pad(h)}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+ $('#hi').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+', rider';
+ let n=0,ok=0,w=null,rows='';
+ ROUTES.forEach(x=>{for(let i=0;i<x.buses;i++){const b=info(x,i,t),q=x.el.getPointAtLength(b.f*x.L);n++;b.s.c==='ok'&&ok++;
+  x.bus[i].style.transform=`translate(${q.x}px,${q.y}px)`;x.bus[i].classList.toggle('late',b.d>=60);
+  if(b.d>=150&&(!w||b.d>w.d))w={x,i,d:b.d};
+  rows+=`<tr class="r" data-r="${x.id}" style="${cv(x)}"><td><span class="dot"></span>${x.id}-${b.l}</td><td>${x.stops[b.k].name}</td><td class="mono">${mins(b.e)}</td><td><div class="bar2"><b style="width:${b.f*100|0}%"></b></div></td><td><span class="pill ${b.s.c}">${b.s.t}</span></td><td><span class="pill ${['ok','mid','bad'][b.o]}">${SEATS[b.o]}</span></td></tr>`}});
+ $('#fleet').innerHTML=rows;$$('tr.r').forEach(e=>e.onclick=()=>pick(e.dataset.r));
+ $('#k1').textContent=n;$('#k2').textContent=ok;$('#k3').textContent=n-ok;
+ $('#hisub').textContent=`${n-ok?n-ok+' of '+n+' buses are running late.':'Every bus is running on time.'} Showing ${r.name}.`;
+ const al=$('#alert');al.classList.toggle('on',!!w);if(w)al.innerHTML=`<b>Service notice</b> ${w.x.id} ${w.x.name}, bus ${w.i+1} is about ${Math.round(w.d/60)} min behind schedule.`;
+ r.stops.forEach((s,k)=>{const e=[];for(let i=0;i<r.buses;i++)e.push({l:'B'+(i+1),s:eta(r,i,t,s.pos),late:delay(r,i,t)>=60});e.sort((a,b)=>a.s-b.s);
+  $('#c'+k).innerHTML=e.slice(0,2).map((z,j)=>`<span class="chip${j?'':' n'}${z.late?' l':''}">${z.l} ${mins(z.s)}</span>`).join('')});
+ $$('#stops .star').forEach(b=>b.classList.toggle('on',favs.has(b.dataset.k)));
+ const it=[];favs.forEach(k=>{const[id,nm]=k.split('|'),x=byId(id),s=x&&x.stops.find(z=>z.name===nm);if(!s)return;let b=9e9,who='';
+  for(let i=0;i<x.buses;i++){const v=eta(x,i,t,s.pos);if(v<b){b=v;who='B'+(i+1)}}
+  it.push({x,s,b,who,k});if(b<120&&!alerted.has(k)){alerted.add(k);toast(`${s.name}: ${x.id}-${who} is ${mins(b).toLowerCase()} away`)}if(b>240)alerted.delete(k)});
+ it.sort((a,b)=>a.b-b.b);
+ $('#favs').innerHTML=it.length?it.map(z=>`<div class="fav"><div><strong>${z.s.name}</strong><br><small>${z.x.id} ${z.x.name}</small></div><div><span class="mono">${z.who} ${mins(z.b)}</span> <button class="star on" data-k="${z.k}" aria-label="Unpin">${STAR}</button></div></div>`).join(''):'<div class="empty">Nothing pinned yet. Star a stop in the list.</div>';
+ $$('#favs .star').forEach(b=>b.onclick=()=>tog(b.dataset.k));
+ drawPlan(t)}
+(function(){const s=ld('tb-route');if(s&&byId(s))active=s;buildMap();
+ ROUTES.forEach(r=>$('#pr').add(new Option(r.id+' '+r.name,r.id)));$('#pr').value=active;fillStops();head();tick();setInterval(tick,1000)})();
 </script>
 </body>
 </html>
